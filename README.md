@@ -6,22 +6,22 @@
 
 # lambda-appsync
 
-A Rust framework that makes it easy to implement AWS AppSync Direct Lambda resolvers with complete type safety and validation.
+A Rust framework for implementing AWS AppSync Direct Lambda resolvers with complete type safety and validation.
 
-lambda-appsync provides procedural macros and types to help convert GraphQL schemas into type-safe Rust code with full AWS Lambda runtime support. It allows you to focus on implementing the resolver logic while handling all the AWS AppSync integration details.
+The lambda-appsync crate provides procedural macros that convert GraphQL schemas into type-safe Rust code and types for AWS AppSync event Lambda integration. This allows you to focus on implementing resolver logic while the framework handles all AWS AppSync integration details.
 
 ## Features
 
 - ✨ Type-safe GraphQL schema conversion to Rust types
-- 🚀 Complete AWS Lambda runtime integration
+- 🚀 Full AWS Lambda runtime integration
 - 🔒 Built-in validation of resolver function signatures
 - 🔌 Easy AWS SDK client initialization
-- 📦 Batching support for improved performance
-- 🛡️ Optional request validation hooks (e.g. for advanced authentication logic)
+- 📦 Performance-optimized batching support
+- 🛡️ Flexible request validation hooks (e.g. for advanced authentication flows)
 
 ## Installation
 
-Add the following to your `Cargo.toml`:
+Add this dependency to your `Cargo.toml`:
 
 ```toml
 [dependencies]
@@ -30,7 +30,7 @@ lambda-appsync = "0.1.0"
 
 ## Quick Start
 
-1. Define your GraphQL schema in a separate file (e.g. `schema.graphql`):
+1. Create your GraphQL schema file (e.g. `schema.graphql`):
 
 ```graphql
 type Query {
@@ -56,7 +56,7 @@ enum GameStatus {
 }
 ```
 
-2. Set up the Lambda runtime with AWS SDK clients in `main.rs`:
+2. Configure the Lambda runtime with AWS SDK clients in `main.rs`:
 
 ```rust
 use lambda_appsync::appsync_lambda_main;
@@ -69,7 +69,7 @@ appsync_lambda_main!(
 );
 ```
 
-3. Implement resolver functions for GraphQL operations anywhere in the same crate:
+3. Implement resolver functions for GraphQL operations in your crate:
 
 ```rust
 use lambda_appsync::{appsync_operation, AppsyncError};
@@ -92,13 +92,24 @@ async fn get_game_status() -> Result<GameStatus, AppsyncError> {
 }
 ```
 
-The macros ensure function signatures match the GraphQL schema and wire everything up to handle AWS AppSync requests automatically.
+The framework's macros verify function signatures match the GraphQL schema and automatically wire everything up to handle AWS AppSync requests.
+
+## Example project
+
+Check out our [complete sample project](https://github.com/JeremieRodon/demo-rust-lambda-appsync) that demonstrates lambda-appsync in action! This full-featured demo implements a GraphQL API for a mini-game web application using AWS AppSync and Lambda, showcasing:
+
+- 🎮 Real-world GraphQL schema
+- 📊 DynamoDB integration
+- 🏗️ Infrastructure as code with AWS CloudFormation
+- 🚀 CI/CD pipeline configuration
+
+Clone the repo to get started with a production-ready template that you can use as reference for your own projects. The demo includes detailed documentation and best practices for building serverless GraphQL APIs with Rust.
 
 ## Additional Examples
 
 ### Custom Type Overrides
 
-You can override the generated Rust type for specific GraphQL fields:
+Override generated Rust types for specific GraphQL fields:
 
 ```rust
 appsync_lambda_main!(
@@ -108,9 +119,9 @@ appsync_lambda_main!(
 );
 ```
 
-### Keeping Original Function Names
+### Preserving Original Function Names
 
-By default, the `appsync_operation` macro only use the body and signature of the function you provide to create an operation handler. You can ask to keep the original function name available separately:
+Keep the original function name available while using it as an operation handler:
 
 ```rust
 #[appsync_operation(query(getUser), keep_original_function_name)]
@@ -120,9 +131,9 @@ async fn fetch_user(id: ID) -> Result<User, AppsyncError> {
 }
 ```
 
-### Separate types and main implementation
+### Modular Type and Implementation Structure
 
-For larger projects, you may want to share the GraphQL types across multiple Lambda functions while keeping the resolvers separate. The `appsync_lambda_main!` macro supports this pattern through flags:
+For larger projects, share GraphQL types across multiple Lambda functions while keeping resolvers separate:
 
 ```rust
 // In a shared library crate:
@@ -141,19 +152,20 @@ appsync_lambda_main!(
 );
 ```
 
-This allows you to define custom traits and methods on the GraphQL types in one place and reuse them across multiple Lambda functions. The shared library contains just the type definitions, while each Lambda gets its own operation handlers and AWS SDK client initialization.
+This enables defining custom traits and methods on GraphQL types in one place while reusing them across multiple Lambda functions. The shared library contains type definitions, while each Lambda maintains its operation handlers and AWS SDK client initialization.
 
 ### Error Handling
 
-Multiple errors can be combined using the pipe operator:
+Combine multiple errors using the pipe operator:
 
 ```rust
 let err = AppsyncError::new("ValidationError", "Invalid email")
     | AppsyncError::new("DatabaseError", "User not found");
 ```
+
 ### AWS SDK Error Support
 
-The `AppsyncError` type automatically handles AWS SDK errors for seamless integration:
+Seamlessly handle AWS SDK errors with automatic conversion:
 
 ```rust
 async fn store_item(item: Item, client: &aws_sdk_dynamodb::Client) -> Result<(), AppsyncError> {
@@ -168,15 +180,15 @@ async fn store_item(item: Item, client: &aws_sdk_dynamodb::Client) -> Result<(),
 }
 ```
 
-The error type and message are extracted from the AWS SDK error metadata. This means you can use the `?` operator with AWS SDK calls and get properly formatted errors in your AppSync responses.
+Error types and messages are extracted from AWS SDK error metadata, allowing use of the `?` operator with AWS SDK calls for properly formatted AppSync response errors.
 
 ## Minimum Supported Rust Version (MSRV)
 
-The minimum supported Rust version is 1.81.0.
+This crate requires Rust version 1.81.0 or later.
 
 ## Contributing
 
-We welcome contributions! Here are some ways you can help:
+We welcome contributions! Here's how you can help:
 
 1. Report bugs by opening an issue
 2. Suggest new features or improvements
@@ -188,13 +200,13 @@ Please review our contributing guidelines before submitting pull requests.
 
 ## Issues
 
-If you find a bug or have a feature request, please check:
+Before reporting issues, please check:
 
 1. Existing issues to avoid duplicates
 2. The documentation to ensure it's not a usage error
 3. The FAQ for common problems
 
-Then open a new issue with:
+When opening a new issue, include:
 
 - A clear title and description
 - Steps to reproduce bugs
@@ -209,4 +221,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Jérémie RODON ([@JeremieRodon](https://github.com/JeremieRodon))
 
-If you find this crate useful, please star the repo and share your feedback!
+If you find this crate useful, please star the repository and share your feedback!
