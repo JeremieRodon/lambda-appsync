@@ -72,4 +72,4 @@ jobs:
       - name: Publish main crate
         run: |
           cd lambda-appsync
-          cargo publish
+          cargo publish --allow-dirty
