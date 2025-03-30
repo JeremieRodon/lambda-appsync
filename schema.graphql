@@ -1,0 +1,21 @@
+type Query {
+  players: [Player!]!
+  gameStatus: GameStatus!
+}
+
+type Player {
+  id: ID!
+  name: String!
+  team: Team!
+}
+
+enum Team {
+  RUST
+  PYTHON
+  JS
+}
+
+enum GameStatus {
+  STARTED
+  STOPPED
+}

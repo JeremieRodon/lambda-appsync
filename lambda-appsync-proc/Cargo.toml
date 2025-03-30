@@ -1,0 +1,16 @@
+[package]
+name = "lambda-appsync-proc"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "2.0.98"
+quote = "1.0.38"
+proc-macro2 = "1.0.93"
+
+graphql-parser = "0.4.1"
