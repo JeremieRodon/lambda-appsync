@@ -9,7 +9,7 @@
 //! # Complete Example
 //!
 //! ```no_run
-//! use lambda_appsync::{appsync_lambda_main, appsync_operation, AppsyncError, ID};
+//! use lambda_appsync::{appsync_lambda_main, appsync_operation, AppsyncError};
 //!
 //! // 1. First define your GraphQL schema (e.g. `schema.graphql`):
 //! //
