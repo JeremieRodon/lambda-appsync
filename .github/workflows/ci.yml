@@ -2,14 +2,14 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "lambda-appsync/**"
       - "lambda-appsync-proc/**"
       - "Cargo.toml"
       - ".github/workflows/**"
   pull_request:
-    branches: [main]
+    branches: [master]
     paths:
       - "lambda-appsync/**"
       - "lambda-appsync-proc/**"
