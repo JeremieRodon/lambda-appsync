@@ -6,10 +6,17 @@
 *** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
-
-[![Crates.io][crate-shield]]
+![crates.io](https://img.shields.io/crates/v/lambda-appsync.svg)
 ![docs.rs](https://docs.rs/lambda-appsync/badge.svg)
 ![CI](https://github.com/JeremieRodon/lambda-appsync/workflows/CI/badge.svg)
+![Contributors](https://img.shields.io/github/contributors/JeremieRodon/lambda-appsync.svg)
+![Forks](https://img.shields.io/github/forks/JeremieRodon/lambda-appsync.svg)
+![Stars](https://img.shields.io/github/stars/JeremieRodon/lambda-appsync.svg)
+![Issues](https://img.shields.io/github/issues/JeremieRodon/lambda-appsync.svg)
+![License](https://img.shields.io/github/license/JeremieRodon/lambda-appsync.svg)
+
+
+
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]

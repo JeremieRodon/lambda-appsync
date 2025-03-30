@@ -3,8 +3,18 @@ name: CI
 on:
   push:
     branches: [main]
+    paths:
+      - "lambda-appsync/**"
+      - "lambda-appsync-proc/**"
+      - "Cargo.toml"
+      - ".github/workflows/**"
   pull_request:
     branches: [main]
+    paths:
+      - "lambda-appsync/**"
+      - "lambda-appsync-proc/**"
+      - "Cargo.toml"
+      - ".github/workflows/**"
 
 jobs:
   test:
