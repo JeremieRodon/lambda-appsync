@@ -70,7 +70,7 @@ enum GameStatus {
 2. Set up the Lambda runtime with AWS SDK clients in `main.rs`:
 
 ```rust
-use lambda_appsync::{appsync_lambda_main, appsync_operation, AppsyncError, ID};
+use lambda_appsync::appsync_lambda_main;
 
 // Generate types and runtime setup from schema
 appsync_lambda_main!(
@@ -80,9 +80,14 @@ appsync_lambda_main!(
 );
 ```
 
-3. Implement resolver functions for GraphQL operations:
+3. Implement resolver functions for GraphQL operations anywhere in the same crate:
 
 ```rust
+use lambda_appsync::{appsync_operation, AppsyncError};
+// The appsync_lambda_main! macro will have created the
+// types declared in schema.graphql at the crate root
+use crate::{Player, GameStatus};
+
 #[appsync_operation(query(players))]
 async fn get_players() -> Result<Vec<Player>, AppsyncError> {
     let client = dynamodb();
@@ -125,6 +130,29 @@ async fn fetch_user(id: ID) -> Result<User, AppsyncError> {
     todo!()
 }
 ```
+
+### Separate types and main implementation
+
+For larger projects, you may want to share the GraphQL types across multiple Lambda functions while keeping the resolvers separate. The `appsync_lambda_main!` macro supports this pattern through flags:
+
+```rust
+// In a shared library crate:
+appsync_lambda_main!(
+    "schema.graphql",
+    only_appsync_types = true,
+);
+
+// Then in each Lambda using this lib:
+use shared_lib::*;
+
+appsync_lambda_main!(
+    "schema.graphql",
+    exclude_appsync_types = true,
+    dynamodb() -> aws_sdk_dynamodb::Client
+);
+```
+
+This allows you to define custom traits and methods on the GraphQL types in one place and reuse them across multiple Lambda functions. The shared library contains just the type definitions, while each Lambda gets its own operation handlers and AWS SDK client initialization.
 
 ### Error Handling
 
