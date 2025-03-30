@@ -403,3 +403,110 @@ pub fn arg_from_json<T: DeserializeOwned>(
 pub fn res_to_json<T: Serialize>(res: T) -> serde_json::Value {
     serde_json::to_value(res).expect("Appsync schema objects are JSON compatible")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_appsync_auth_strategy() {
+        let allow: AppsyncAuthStrategy = serde_json::from_str("\"ALLOW\"").unwrap();
+        let deny: AppsyncAuthStrategy = serde_json::from_str("\"DENY\"").unwrap();
+
+        match allow {
+            AppsyncAuthStrategy::Allow => (),
+            _ => panic!("Expected Allow"),
+        }
+
+        match deny {
+            AppsyncAuthStrategy::Deny => (),
+            _ => panic!("Expected Deny"),
+        }
+    }
+
+    #[test]
+    fn test_appsync_identity() {
+        let json = json!({
+            "sub": "user123",
+            "username": "testuser",
+            "issuer": "https://test",
+            "defaultAuthStrategy": "ALLOW",
+            "sourceIp": ["1.2.3.4"],
+            "groups": ["group1"],
+            "claims": {"custom": "value"}
+        });
+
+        let identity: AppsyncIdentity = serde_json::from_value(json).unwrap();
+        assert_eq!(identity.sub, "user123");
+        assert_eq!(identity.username, "testuser");
+        assert_eq!(identity.issuer, "https://test");
+        assert_eq!(identity.source_ip, vec!["1.2.3.4"]);
+        assert_eq!(identity.groups, vec!["group1"]);
+        assert_eq!(identity.claims, json!({"custom": "value"}));
+    }
+
+    #[test]
+    fn test_appsync_response() {
+        let success = AppsyncResponse::from(json!({"field": "value"}));
+        assert!(success.data.is_some());
+        assert!(success.error.is_none());
+
+        let error = AppsyncResponse::from(AppsyncError::new("TestError", "message"));
+        assert!(error.data.is_none());
+        assert!(error.error.is_some());
+    }
+
+    #[test]
+    fn test_appsync_error() {
+        let error = AppsyncError::new("TestError", "message");
+        assert_eq!(error.error_type, "TestError");
+        assert_eq!(error.error_message, "message");
+
+        let error1 = AppsyncError::new("Error1", "msg1");
+        let error2 = AppsyncError::new("Error2", "msg2");
+        let combined = error1 | error2;
+
+        assert_eq!(combined.error_type, "Error1|Error2");
+        assert_eq!(combined.error_message, "msg1\nmsg2");
+    }
+
+    #[test]
+    fn test_arg_from_json() {
+        let mut args = json!({
+            "string": "test",
+            "number": 42,
+            "bool": true
+        });
+
+        let s: String = arg_from_json(&mut args, "string").unwrap();
+        assert_eq!(s, "test");
+
+        let n: i32 = arg_from_json(&mut args, "number").unwrap();
+        assert_eq!(n, 42);
+
+        let b: bool = arg_from_json(&mut args, "bool").unwrap();
+        assert!(b);
+
+        let err: Result<String, _> = arg_from_json(&mut args, "missing");
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn test_res_to_json() {
+        #[derive(Serialize)]
+        struct Test {
+            field: String,
+        }
+
+        let test = Test {
+            field: "value".to_string(),
+        };
+
+        let json = res_to_json(test);
+        assert_eq!(json, json!({"field": "value"}));
+
+        assert_eq!(res_to_json(42), json!(42));
+        assert_eq!(res_to_json("test"), json!("test"));
+    }
+}

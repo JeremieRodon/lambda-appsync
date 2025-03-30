@@ -68,3 +68,55 @@ impl Deref for ID {
         &self.0
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_id_creation() {
+        let id = ID::new();
+        let id_str: String = id.into();
+
+        // Test parsing back
+        let parsed = ID::try_from(id_str.clone()).unwrap();
+        assert_eq!(id, parsed);
+
+        // Test display
+        assert_eq!(id.to_string(), id_str);
+    }
+
+    #[test]
+    fn test_new_id() {
+        let id = ID::new();
+        assert!(uuid::Uuid::parse_str(&id.to_string()).is_ok());
+    }
+
+    #[test]
+    fn test_id_conversion() {
+        let id = ID::new();
+        let id_string = String::from(id);
+        let converted_id = ID::try_from(id_string.clone()).unwrap();
+        assert_eq!(id, converted_id);
+        assert_eq!(id.to_string(), id_string);
+    }
+
+    #[test]
+    fn test_invalid_id() {
+        let result = ID::try_from("not-a-uuid".to_string());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_id_deref() {
+        let id = ID::new();
+        let uuid: &uuid::Uuid = id.deref();
+        assert_eq!(uuid.to_string(), id.to_string());
+    }
+
+    #[test]
+    fn test_id_display() {
+        let id = ID::new();
+        let uuid_string = id.0.to_string();
+        assert_eq!(id.to_string(), uuid_string);
+    }
+}

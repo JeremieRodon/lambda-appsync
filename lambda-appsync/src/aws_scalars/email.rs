@@ -18,3 +18,45 @@ impl From<&str> for AWSEmail {
         Self(value.to_lowercase())
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn email_lowercase() {
+        let email = AWSEmail::from("TEST@EXAMPLE.COM");
+        assert_eq!(*email, "test@example.com");
+    }
+
+    #[test]
+    fn email_mixed_case() {
+        let email = AWSEmail::from("Test@Example.com");
+        assert_eq!(*email, "test@example.com");
+    }
+
+    #[test]
+    fn email_already_lowercase() {
+        let input = "test@example.com".to_string();
+        let email = AWSEmail::from(input.clone());
+        assert_eq!(*email, input);
+    }
+
+    #[test]
+    fn email_from_str() {
+        let email = AWSEmail::from("Test@Example.com");
+        assert_eq!(*email, "test@example.com");
+    }
+
+    #[test]
+    fn email_into_string() {
+        let email = AWSEmail::from("test@example.com");
+        let email_string: String = email.into();
+        assert_eq!(email_string, "test@example.com");
+    }
+    #[test]
+    fn email_display() {
+        let value = "test@example.com";
+        let email = AWSEmail::from(value);
+        assert_eq!(email.to_string(), value);
+    }
+}
