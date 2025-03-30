@@ -1,9 +1,9 @@
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum CaseType {
-    CamelCase,  // Lowercase separated by Uppercase letters, first letter lower
-    PascalCase, // Lowercase separated by Uppercase letters, first letter uppercase
-    SnakeCase,  // Lowercase separated by _
-    UpperCase,  // All uppercase separated by _
+    Camel,  // Lowercase separated by Uppercase letters, first letter lower
+    Pascal, // Lowercase separated by Uppercase letters, first letter uppercase
+    Snake,  // Lowercase separated by _
+    Upper,  // All uppercase separated by _
 }
 impl CaseType {
     fn case(s: &str) -> Self {
@@ -11,20 +11,20 @@ impl CaseType {
         if let Some(c) = chars.next() {
             if c.is_uppercase() {
                 // Can only be Pascal or all upper
-                while let Some(c) = chars.next() {
+                for c in chars {
                     if !(c.is_uppercase() || c == '_') {
-                        return Self::PascalCase;
+                        return Self::Pascal;
                     }
                 }
-                return Self::UpperCase;
+                return Self::Upper;
             } else {
                 // Can only be Camel or all lower
-                while let Some(c) = chars.next() {
+                for c in chars {
                     if !(c.is_lowercase() || c == '_') {
-                        return Self::CamelCase;
+                        return Self::Camel;
                     }
                 }
-                return Self::SnakeCase;
+                return Self::Snake;
             }
         }
         panic!("Empty string has no case");
@@ -66,7 +66,7 @@ pub(crate) struct Name {
 impl From<String> for Name {
     fn from(value: String) -> Self {
         match CaseType::case(value.as_str()) {
-            CaseType::CamelCase => {
+            CaseType::Camel => {
                 let mut words = vec![];
                 let mut slice_start = 0;
                 for (i, c) in value.chars().enumerate() {
@@ -78,7 +78,7 @@ impl From<String> for Name {
                 words.push(Word(value[slice_start..].to_lowercase()));
                 Name { orig: value, words }
             }
-            CaseType::PascalCase => {
+            CaseType::Pascal => {
                 let mut words = vec![];
                 let mut slice_start = 0;
                 for (i, c) in value.chars().enumerate() {
@@ -90,11 +90,11 @@ impl From<String> for Name {
                 words.push(Word(value[slice_start..].to_lowercase()));
                 Name { orig: value, words }
             }
-            CaseType::SnakeCase => {
+            CaseType::Snake => {
                 let words = value.split('_').map(|w| Word(w.to_owned())).collect();
                 Name { orig: value, words }
             }
-            CaseType::UpperCase => {
+            CaseType::Upper => {
                 let words = value.split('_').map(|w| Word(w.to_lowercase())).collect();
                 Name { orig: value, words }
             }
@@ -107,7 +107,7 @@ impl Name {
     }
     pub(crate) fn to_case(&self, case: CaseType) -> String {
         match case {
-            CaseType::CamelCase => {
+            CaseType::Camel => {
                 let mut word_iter = self.words.iter();
                 let first = word_iter.next().expect("non empty name");
                 format!(
@@ -118,14 +118,14 @@ impl Name {
                         .join("")
                 )
             }
-            CaseType::PascalCase => self
+            CaseType::Pascal => self
                 .words
                 .iter()
                 .map(|w| w.capitalize())
                 .collect::<Vec<_>>()
                 .join(""),
-            CaseType::SnakeCase => self.words.join("_"),
-            CaseType::UpperCase => self
+            CaseType::Snake => self.words.join("_"),
+            CaseType::Upper => self
                 .words
                 .iter()
                 .map(|w| w.to_uppercase())
@@ -135,25 +135,25 @@ impl Name {
     }
     pub(crate) fn to_type_ident(&self) -> proc_macro2::Ident {
         proc_macro2::Ident::new(
-            &self.to_case(CaseType::PascalCase),
+            &self.to_case(CaseType::Pascal),
             proc_macro2::Span::call_site(),
         )
     }
     pub(crate) fn to_var_ident(&self) -> proc_macro2::Ident {
         proc_macro2::Ident::new(
-            &self.to_case(CaseType::SnakeCase),
+            &self.to_case(CaseType::Snake),
             proc_macro2::Span::call_site(),
         )
     }
     pub(crate) fn to_unused_param_ident(&self) -> proc_macro2::Ident {
         proc_macro2::Ident::new(
-            &format!("_{}", self.to_case(CaseType::SnakeCase)),
+            &format!("_{}", self.to_case(CaseType::Snake)),
             proc_macro2::Span::call_site(),
         )
     }
     pub(crate) fn to_prefixed_fct_ident(&self, prefix: &str) -> proc_macro2::Ident {
         proc_macro2::Ident::new(
-            &format!("{prefix}_{}", self.to_case(CaseType::SnakeCase)),
+            &format!("{prefix}_{}", self.to_case(CaseType::Snake)),
             proc_macro2::Span::call_site(),
         )
     }

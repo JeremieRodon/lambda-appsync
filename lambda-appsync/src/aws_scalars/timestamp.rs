@@ -6,6 +6,14 @@ use std::time::{Duration, SystemTime};
 #[serde(from = "u64", into = "u64")]
 pub struct AWSTimestamp(SystemTime);
 impl AWSTimestamp {
+    /// Returns an [AWSTimestamp] representing the current date and time, as reported by the system clock.
+    ///
+    /// # Example
+    /// ```
+    /// use lambda_appsync::AWSTimestamp;
+    ///
+    /// let now = AWSTimestamp::now();
+    /// ```
     pub fn now() -> Self {
         Self(SystemTime::now())
     }

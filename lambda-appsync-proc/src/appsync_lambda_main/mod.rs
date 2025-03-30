@@ -145,10 +145,7 @@ impl OptionalParameters {
                 self.hook.replace(ident);
             }
             OptionalParameter::FieldTypeOverride(fto) => {
-                self.ftos
-                    .entry(fto.structure_name())
-                    .or_insert(vec![])
-                    .push(fto);
+                self.ftos.entry(fto.structure_name()).or_default().push(fto);
             }
             OptionalParameter::ExcludeLambdaHandler(_) => (),
             OptionalParameter::OnlyLambdaHandler(_) => (),
@@ -169,7 +166,7 @@ struct AppsyncLambdaMain {
 impl Parse for AppsyncLambdaMain {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let graphql_schema_path = input.parse::<LitStr>()?;
-        let schema_str = std::fs::read_to_string(&graphql_schema_path.value()).map_err(|e| {
+        let schema_str = std::fs::read_to_string(graphql_schema_path.value()).map_err(|e| {
             syn::Error::new(
                 graphql_schema_path.span(),
                 format!("Could not open GraphQL schema file ({e})",),
@@ -198,7 +195,7 @@ impl Parse for AppsyncLambdaMain {
             } else if AWSClient::is_next(input) {
                 aws_clients.push(input.parse::<AWSClient>()?);
             } else {
-                return Err(syn::Error::new(input.span(), format!("Unknown argument",)));
+                return Err(syn::Error::new(input.span(), "Unknown argument"));
             }
         }
 
@@ -271,7 +268,7 @@ impl AppsyncLambdaMain {
     }
 
     fn lambda_main(&self, tokens: &mut TokenStream2) {
-        let (config_init, config_getter) = if self.aws_clients.len() > 0 {
+        let (config_init, config_getter) = if !self.aws_clients.is_empty() {
             (AWSClient::aws_config_init(), AWSClient::aws_config_getter())
         } else {
             (TokenStream2::new(), TokenStream2::new())

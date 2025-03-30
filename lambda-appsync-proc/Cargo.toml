@@ -1,16 +1,24 @@
 [package]
 name = "lambda-appsync-proc"
 version.workspace = true
-edition.workspace = true
 rust-version.workspace = true
+edition.workspace = true
 authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Procedural macros for the lambda-appsync type-safe AWS AppSync resolver framework"
+keywords.workspace = true
+categories.workspace = true
 
 [lib]
 proc-macro = true
 
 [dependencies]
-syn = "2.0.98"
-quote = "1.0.38"
-proc-macro2 = "1.0.93"
+syn = { version = "2.0", default-features = false, features = [
+    "parsing",
+    "proc-macro",
+] }
+quote = "1.0"
+proc-macro2 = "1.0"
 
-graphql-parser = "0.4.1"
+graphql-parser = "0.4"

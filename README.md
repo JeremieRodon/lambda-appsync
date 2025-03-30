@@ -1,3 +1,21 @@
+<!-- PROJECT SHIELDS -->
+<!--
+*** I'm using markdown "reference style" links for readability.
+*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
+*** See the bottom of this document for the declaration of the reference variables
+*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
+*** https://www.markdownguide.org/basic-syntax/#reference-style-links
+-->
+
+[![Crates.io][crate-shield]]
+![docs.rs](https://docs.rs/lambda-appsync/badge.svg)
+![CI](https://github.com/JeremieRodon/lambda-appsync/workflows/CI/badge.svg)
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
+
 # lambda-appsync
 
 A Rust framework that makes it easy to implement AWS AppSync Direct Lambda resolvers with complete type safety and validation.
@@ -19,7 +37,7 @@ Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lambda-appsync = "0.0.1"
+lambda-appsync = "0.1.0"
 ```
 
 ## Quick Start
@@ -176,3 +194,24 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Jérémie RODON ([@JeremieRodon](https://github.com/JeremieRodon))
 
 If you find this crate useful, please star the repo and share your feedback!
+
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[crate-shield]: https://img.shields.io/crates/v/lambda-appsync.svg?style=for-the-badge
+<!-- [crate-url]: https://github.com/JeremieRodon/lambda-appsync/graphs/contributors -->
+
+[contributors-shield]: https://img.shields.io/github/contributors/JeremieRodon/lambda-appsync.svg?style=for-the-badge
+[contributors-url]: https://github.com/JeremieRodon/lambda-appsync/graphs/contributors
+
+[forks-shield]: https://img.shields.io/github/forks/JeremieRodon/lambda-appsync.svg?style=for-the-badge
+[forks-url]: https://github.com/JeremieRodon/lambda-appsync/network/members
+
+[stars-shield]: https://img.shields.io/github/stars/JeremieRodon/lambda-appsync.svg?style=for-the-badge
+[stars-url]: https://github.com/JeremieRodon/lambda-appsync/stargazers
+
+[issues-shield]: https://img.shields.io/github/issues/JeremieRodon/lambda-appsync.svg?style=for-the-badge
+[issues-url]: https://github.com/JeremieRodon/lambda-appsync/issues
+
+[license-shield]: https://img.shields.io/github/license/JeremieRodon/lambda-appsync.svg?style=for-the-badge
+[license-url]: https://github.com/JeremieRodon/lambda-appsync/blob/master/LICENSE

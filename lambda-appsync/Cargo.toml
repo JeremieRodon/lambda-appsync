@@ -1,9 +1,15 @@
 [package]
 name = "lambda-appsync"
 version.workspace = true
-edition.workspace = true
 rust-version.workspace = true
+edition.workspace = true
 authors.workspace = true
+license.workspace = true
+description.workspace = true
+repository.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 lambda-appsync-proc = { path = "../lambda-appsync-proc" }
@@ -12,7 +18,7 @@ tokio = { version = "1", features = ["macros"] }
 
 lambda_runtime = "0.12"
 aws-config = { version = "1.5", features = ["behavior-version-latest"] }
-aws-smithy-types = "1.3.0"
+aws-smithy-types = "1.3"
 
 log = "0.4"
 env_logger = "0.11"

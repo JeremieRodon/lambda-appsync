@@ -31,6 +31,11 @@ impl ID {
         Self(uuid::Uuid::new_v4())
     }
 }
+impl Default for ID {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl TryFrom<String> for ID {
     type Error = uuid::Error;
     /// Attempts to create an ID from a string representation of a UUID.

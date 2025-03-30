@@ -177,7 +177,7 @@ impl ToTokens for AppsyncOperation {
         let mut op_fct_name = self
             .args
             .op_name
-            .to_prefixed_fct_ident(&self.args.op_kind.fct_prefix());
+            .to_prefixed_fct_ident(self.args.op_kind.fct_prefix());
         op_fct_name.set_span(self.args.op_name_span);
 
         let fct_name = &self.fct.fct_name;

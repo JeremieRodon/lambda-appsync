@@ -18,7 +18,9 @@ enum Scalar {
     AWSDate,
     AWSTime,
     AWSDateTime,
+    #[allow(clippy::upper_case_acronyms)]
     AWSJSON,
+    #[allow(clippy::upper_case_acronyms)]
     AWSURL,
     AWSIPAddress,
 }
@@ -84,10 +86,7 @@ impl FieldType {
         }
     }
     fn is_optionnal(&self) -> bool {
-        match self {
-            FieldType::Optionnal(_) => true,
-            _ => false,
-        }
+        matches!(self, FieldType::Optionnal(_))
     }
     fn override_type(&mut self, ty: syn::Type) {
         match self {
@@ -200,7 +199,7 @@ impl FieldTypeOverride {
 impl syn::parse::Parse for FieldTypeOverride {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let begin = input.cursor();
-        Ok(Self::_parse(input).map_err(|e: syn::Error| {
+        Self::_parse(input).map_err(|e: syn::Error| {
             let mut current = begin;
             let end = input.cursor();
             let mut ts = TokenStream::new();
@@ -210,7 +209,7 @@ impl syn::parse::Parse for FieldTypeOverride {
                 current = c;
             }
             syn::Error::new_spanned(ts, e.to_string())
-        })?)
+        })
     }
 }
 struct Structure {
@@ -222,7 +221,7 @@ impl Structure {
     fn apply_override(&mut self, fto: FieldTypeOverride) -> Result<(), syn::Error> {
         assert_eq!(self.name.orig(), fto.structure_name.to_string());
         for field in self.fields.iter_mut() {
-            if field.name.orig() == fto.field_name.to_string() {
+            if fto.field_name == field.name.orig() {
                 field.field_type.override_type(fto.type_ident);
                 return Ok(());
             }
@@ -384,7 +383,7 @@ impl Operation {
             OperationKind::Query | OperationKind::Mutation => {
                 let unimplemented_message = format!(
                     "{kind} `{}` is unimplemented",
-                    self.name.to_case(CaseType::CamelCase)
+                    self.name.to_case(CaseType::Camel)
                 );
                 quote! {
                     ::core::result::Result::Err(::lambda_appsync::AppsyncError::new(
@@ -508,10 +507,11 @@ impl GraphQLSchema {
         let mut structures = vec![];
         let mut enums = vec![];
 
-        let sd = if let Some(index) = doc.definitions.iter().position(|def| match def {
-            Definition::SchemaDefinition(_) => true,
-            _ => false,
-        }) {
+        let sd = if let Some(index) = doc
+            .definitions
+            .iter()
+            .position(|def| matches!(def, Definition::SchemaDefinition(_)))
+        {
             let Definition::SchemaDefinition(def) = doc.definitions.swap_remove(index) else {
                 unreachable!("just verified it is a schema def")
             };
@@ -569,7 +569,7 @@ impl GraphQLSchema {
                 Definition::SchemaDefinition(_) => {
                     return Err(syn::Error::new(
                         span,
-                        format!("GraphQL schema file has two `schema` definition"),
+                        "GraphQL schema file has two `schema` definition",
                     ));
                 }
                 // Ignored for now

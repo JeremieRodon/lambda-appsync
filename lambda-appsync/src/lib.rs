@@ -1,3 +1,5 @@
+#![warn(missing_docs)]
+#![warn(rustdoc::missing_crate_level_docs)]
 //! This crate provides procedural macros and types for implementing
 //! AWS AppSync Direct Lambda resolvers.
 //!
@@ -104,12 +106,15 @@ pub use tokio;
 /// Authorization strategy for AppSync operations.
 ///
 /// This enum determines whether operations are allowed or denied based on the
-/// authentication context provided by AWS AppSync. It is typically used in
-/// conjunction with AWS Cognito user pools or IAM authentication.
+/// authentication context provided by AWS AppSync. It is typically used by AppSync
+/// itself in conjunction with AWS Cognito user pools or IAM authentication
+/// and usually do not concern the Lambda code.
 #[derive(Debug, Clone, Copy, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum AppsyncAuthStrategy {
+    /// Allows the operation by default if no explicit authorizer is associated to the field
     Allow,
+    /// Denies the operation by default if no explicit authorizer is associated to the field
     Deny,
 }
 
@@ -265,7 +270,9 @@ impl From<AppsyncError> for AppsyncResponse {
 #[serde(rename_all = "camelCase")]
 #[error("{error_type}: {error_message}")]
 pub struct AppsyncError {
+    /// The type/category of error that occurred (e.g. "ValidationError", "NotFound", "DatabaseError")
     pub error_type: String,
+    /// A detailed message describing the specific error condition
     pub error_message: String,
 }
 impl AppsyncError {
