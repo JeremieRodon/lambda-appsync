@@ -6,14 +6,21 @@
 *** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
-![crates.io](https://img.shields.io/crates/v/lambda-appsync.svg)
-![docs.rs](https://docs.rs/lambda-appsync/badge.svg)
-![CI](https://github.com/JeremieRodon/lambda-appsync/workflows/CI/badge.svg)
-![Contributors](https://img.shields.io/github/contributors/JeremieRodon/lambda-appsync.svg)
-![Forks](https://img.shields.io/github/forks/JeremieRodon/lambda-appsync.svg)
-![Stars](https://img.shields.io/github/stars/JeremieRodon/lambda-appsync.svg)
-![Issues](https://img.shields.io/github/issues/JeremieRodon/lambda-appsync.svg)
-![License](https://img.shields.io/github/license/JeremieRodon/lambda-appsync.svg)
+[![crates.io](https://img.shields.io/crates/v/lambda-appsync.svg)](https://crates.io/crates/lambda-appsync)
+
+[![docs.rs](https://docs.rs/lambda-appsync/badge.svg)](https://docs.rs/lambda-appsync/0.1.0/lambda_appsync)
+
+[![CI](https://github.com/JeremieRodon/lambda-appsync/workflows/CI/badge.svg)](https://github.com/JeremieRodon/lambda-appsync/actions)
+
+[![Contributors](https://img.shields.io/github/contributors/JeremieRodon/lambda-appsync.svg)](https://github.com/JeremieRodon/lambda-appsync/graphs/contributors)
+
+[![Forks](https://img.shields.io/github/forks/JeremieRodon/lambda-appsync.svg)](https://github.com/JeremieRodon/lambda-appsync/network/members)
+
+[![Stars](https://img.shields.io/github/stars/JeremieRodon/lambda-appsync.svg)](https://github.com/JeremieRodon/lambda-appsync/stargazers)
+
+[![Issues](https://img.shields.io/github/issues/JeremieRodon/lambda-appsync.svg)](https://github.com/JeremieRodon/lambda-appsync/issues)
+
+[![License](https://img.shields.io/github/license/JeremieRodon/lambda-appsync.svg)](https://github.com/JeremieRodon/lambda-appsync/blob/master/LICENSE)
 
 # lambda-appsync
 
