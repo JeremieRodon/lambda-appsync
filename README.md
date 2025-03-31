@@ -19,6 +19,15 @@ The lambda-appsync crate provides procedural macros that convert GraphQL schemas
 - 📦 Performance-optimized batching support
 - 🛡️ Flexible request validation hooks (e.g. for advanced authentication flows)
 
+## Known limitations
+
+The framework currently has limited support for certain GraphQL schema features:
+
+- GraphQL unions are not supported and will be ignored by the macro
+- GraphQL interfaces are not directly supported, though concrete types that implement interfaces will work correctly
+
+We actively track user needs around these features. If your project requires union or interface support, please open a GitHub issue detailing your use case and expected implementation. Your feedback helps us prioritize future development work and determine the best way to implement these features in a type-safe manner.
+
 ## Installation
 
 Add this dependency to your `Cargo.toml`:
