@@ -133,9 +133,9 @@ appsync_lambda_main!(
 Keep the original function name available while using it as an operation handler:
 
 ```rust
+// Can still call fetch_user() directly
 #[appsync_operation(query(getUser), keep_original_function_name)]
 async fn fetch_user(id: ID) -> Result<User, AppsyncError> {
-    // Can still call fetch_user() directly
     todo!()
 }
 ```
