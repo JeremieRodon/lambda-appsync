@@ -3,6 +3,10 @@ type Query {
   gameStatus: GameStatus!
 }
 
+type Mutation {
+  createUser(name: String!): Player!
+}
+
 type Player {
   id: ID!
   name: String!

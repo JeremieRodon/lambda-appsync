@@ -14,11 +14,13 @@ categories.workspace = true
 proc-macro = true
 
 [dependencies]
-syn = { version = "2.0", default-features = false, features = [
-    "parsing",
-    "proc-macro",
-] }
-quote = "1.0"
-proc-macro2 = "1.0"
+syn = { workspace = true }
+quote = { workspace = true }
+proc-macro2 = { workspace = true }
+graphql-parser = { workspace = true }
 
-graphql-parser = "0.4"
+[dev-dependencies]
+lambda-appsync = { path = "../lambda-appsync" }
+aws-sdk-s3 = { workspace = true }
+aws-sdk-dynamodb = { workspace = true }
+serde = { workspace = true }

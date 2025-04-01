@@ -104,8 +104,12 @@ use proc_macro::TokenStream;
 /// # Examples
 ///
 /// Basic usage with authentication hook:
-/// ```ignore
-/// use lambda_appsync::appsync_lambda_main;
+/// ```no_run
+/// use lambda_appsync::{appsync_lambda_main, AppsyncEvent, AppsyncResponse, AppsyncIdentity};
+///
+///  fn is_authorized(identity: Option<&AppsyncIdentity>) -> bool {
+///     todo!()
+/// }
 ///
 /// // If the function returns Some(AppsyncResponse), the Lambda function will immediatly return it
 /// // Else, the normal flow of the AppSync operation processing will continue
@@ -115,7 +119,7 @@ use proc_macro::TokenStream;
 ///     event: &lambda_appsync::AppsyncEvent<Operation>
 /// ) -> Option<lambda_appsync::AppsyncResponse> {
 ///     // Verify JWT token, check permissions etc
-///     if !is_authorized(&event.identity) {
+///     if !is_authorized(event.identity.as_ref()) {
 ///         return Some(AppsyncResponse::unauthorized());
 ///     }
 ///     None
@@ -129,7 +133,8 @@ use proc_macro::TokenStream;
 /// ```
 ///
 /// Generate only types for lib code generation:
-/// ```ignore
+/// ```no_run
+/// use lambda_appsync::appsync_lambda_main;
 /// appsync_lambda_main!(
 ///     "schema.graphql",
 ///     only_appsync_types = true
@@ -137,19 +142,20 @@ use proc_macro::TokenStream;
 /// ```
 ///
 /// Override field types and use multiple AWS clients:
-/// ```ignore
+/// ```no_run
+/// use lambda_appsync::appsync_lambda_main;
 /// appsync_lambda_main!(
 ///     "schema.graphql",
 ///     dynamodb() -> aws_sdk_dynamodb::Client,
 ///     s3() -> aws_sdk_s3::Client,
-///     field_type_override = User.id: Uuid,
-///     field_type_override = Post.tags: Vec<String>
+///     // Use String instead of the default lambda_appsync::ID
+///     field_type_override = Player.id: String,
 /// );
 /// ```
 ///
 /// Disable batch processing:
-/// ```ignore
-/// appsync_lambda_main!(
+/// ```no_run
+/// lambda_appsync::appsync_lambda_main!(
 ///     "schema.graphql",
 ///     batch = false
 /// );
