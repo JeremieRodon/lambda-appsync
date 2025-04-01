@@ -89,8 +89,21 @@ use proc_macro::TokenStream;
 /// - AWS Lambda runtime setup with logging to handle the AWS AppSync event
 /// - Optional AWS SDK client initialization
 ///
-/// # Example Usage
+/// # Options
 ///
+/// - `batch = bool`: Enable/disable batch request handling (default: true)
+/// - `hook = fn_name`: Add a custom hook function for request validation/auth
+/// - `exclude_lambda_handler = bool`: Skip generation of Lambda handler code
+/// - `only_lambda_handler = bool`: Only generate Lambda handler code
+/// - `exclude_appsync_types = bool`: Skip generation of GraphQL type definitions
+/// - `only_appsync_types = bool`: Only generate GraphQL type definitions
+/// - `exclude_appsync_operations = bool`: Skip generation of operation enums
+/// - `only_appsync_operations = bool`: Only generate operation enums
+/// - `field_type_override = Type.field: CustomType`: Override type of a specific field
+///
+/// # Examples
+///
+/// Basic usage with authentication hook:
 /// ```ignore
 /// use lambda_appsync::appsync_lambda_main;
 ///
@@ -98,24 +111,47 @@ use proc_macro::TokenStream;
 /// // Else, the normal flow of the AppSync operation processing will continue
 /// // This is primarily intended for advanced authentication checks that AppSync cannot perform,
 /// // such as verifying that a user is requesting their own ID for example.
-/// async fn before_request(
+/// async fn auth_hook(
 ///     event: &lambda_appsync::AppsyncEvent<Operation>
 /// ) -> Option<lambda_appsync::AppsyncResponse> {
-///     todo!()
+///     // Verify JWT token, check permissions etc
+///     if !is_authorized(&event.identity) {
+///         return Some(AppsyncResponse::unauthorized());
+///     }
+///     None
 /// }
 ///
 /// appsync_lambda_main!(
-///     // Path to GraphQL schema file
-///     "path/to/schema.gql",
+///     "schema.graphql",
+///     hook = auth_hook,
+///     dynamodb() -> aws_sdk_dynamodb::Client
+/// );
+/// ```
 ///
-///     // Optional AWS SDK clients
+/// Generate only types for lib code generation:
+/// ```ignore
+/// appsync_lambda_main!(
+///     "schema.graphql",
+///     only_appsync_types = true
+/// );
+/// ```
+///
+/// Override field types and use multiple AWS clients:
+/// ```ignore
+/// appsync_lambda_main!(
+///     "schema.graphql",
 ///     dynamodb() -> aws_sdk_dynamodb::Client,
 ///     s3() -> aws_sdk_s3::Client,
+///     field_type_override = User.id: Uuid,
+///     field_type_override = Post.tags: Vec<String>
+/// );
+/// ```
 ///
-///     // Options
-///     batch = true,  // Enable batch request handling
-///     hook = before_request, // Add custom request hook, typically used for authentication
-///     field_type_override = MyType.field: CustomType // Override generated field types
+/// Disable batch processing:
+/// ```ignore
+/// appsync_lambda_main!(
+///     "schema.graphql",
+///     batch = false
 /// );
 /// ```
 #[proc_macro]
