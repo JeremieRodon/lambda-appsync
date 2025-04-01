@@ -217,6 +217,23 @@ pub struct AppsyncResponse {
     #[serde(flatten, skip_serializing_if = "Option::is_none")]
     error: Option<AppsyncError>,
 }
+
+impl AppsyncResponse {
+    /// Returns an unauthorized error response
+    ///
+    /// This creates a standard unauthorized error response for when a request
+    /// lacks proper authentication.
+    ///
+    /// # Examples
+    /// ```
+    /// # use lambda_appsync::AppsyncResponse;
+    /// let response = AppsyncResponse::unauthorized();
+    /// ```
+    pub fn unauthorized() -> Self {
+        AppsyncError::new("Unauthorized", "This operation cannot be authorized").into()
+    }
+}
+
 impl From<Value> for AppsyncResponse {
     fn from(value: Value) -> Self {
         Self {
