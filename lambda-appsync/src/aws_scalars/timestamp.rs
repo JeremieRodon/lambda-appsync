@@ -1,10 +1,12 @@
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, SystemTime};
 
-#[doc = "AWS AppSync specific GraphQL scalar type implemented a [String] new-type"]
+/// AWS AppSync specific GraphQL scalar type implemented [SystemTime] new-type.
+/// Note that this type implements Copy
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(from = "u64", into = "u64")]
 pub struct AWSTimestamp(SystemTime);
+
 impl AWSTimestamp {
     /// Returns an [AWSTimestamp] representing the current date and time, as reported by the system clock.
     ///
@@ -17,7 +19,46 @@ impl AWSTimestamp {
     pub fn now() -> Self {
         Self(SystemTime::now())
     }
+
+    /// Converts timestamp into UNIX epoch as number of seconds.
+    ///
+    /// # Examples
+    /// ```
+    /// use lambda_appsync::AWSTimestamp;
+    ///
+    /// let ts = AWSTimestamp::from(1234);
+    /// assert_eq!(ts.into_u64(), 1234);
+    /// ```
+    pub fn into_u64(self) -> u64 {
+        self.into()
+    }
+
+    /// Creates an [AWSTimestamp] from a u64 representing seconds since the UNIX epoch.
+    ///
+    /// # Examples
+    /// ```
+    /// use lambda_appsync::AWSTimestamp;
+    ///
+    /// let ts = AWSTimestamp::from_u64(1234);
+    /// assert_eq!(ts.into_u64(), 1234);
+    /// ```
+    pub fn from_u64(value: u64) -> Self {
+        Self::from(value)
+    }
 }
+
+impl From<SystemTime> for AWSTimestamp {
+    fn from(time: SystemTime) -> Self {
+        Self(time)
+    }
+}
+
+impl PartialEq<SystemTime> for AWSTimestamp {
+    fn eq(&self, other: &SystemTime) -> bool {
+        self.0 == *other
+    }
+}
+
 impl From<AWSTimestamp> for u64 {
     fn from(value: AWSTimestamp) -> Self {
         value
@@ -27,28 +68,51 @@ impl From<AWSTimestamp> for u64 {
             .as_secs()
     }
 }
+
+impl std::fmt::Display for AWSTimestamp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", u64::from(*self))
+    }
+}
+
 impl From<u64> for AWSTimestamp {
     fn from(value: u64) -> Self {
         Self(std::time::UNIX_EPOCH + Duration::from_secs(value))
     }
 }
+
 impl Default for AWSTimestamp {
     fn default() -> Self {
         Self::now()
     }
 }
+
 impl std::ops::Add<Duration> for AWSTimestamp {
     type Output = Self;
     fn add(self, rhs: Duration) -> Self::Output {
         Self(self.0 + rhs)
     }
 }
+
+impl std::ops::AddAssign<Duration> for AWSTimestamp {
+    fn add_assign(&mut self, rhs: Duration) {
+        self.0 += rhs;
+    }
+}
+
 impl std::ops::Sub<Duration> for AWSTimestamp {
     type Output = Self;
     fn sub(self, rhs: Duration) -> Self::Output {
         Self(self.0 - rhs)
     }
 }
+
+impl std::ops::SubAssign<Duration> for AWSTimestamp {
+    fn sub_assign(&mut self, rhs: Duration) {
+        self.0 -= rhs;
+    }
+}
+
 impl std::ops::Sub<AWSTimestamp> for AWSTimestamp {
     type Output = Duration;
     fn sub(self, rhs: AWSTimestamp) -> Self::Output {
@@ -57,6 +121,7 @@ impl std::ops::Sub<AWSTimestamp> for AWSTimestamp {
             .expect("the substracted AWSTimestamp MUST be earlier")
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -95,10 +160,26 @@ mod tests {
     }
 
     #[test]
+    fn test_timestamp_add_assign() {
+        let mut ts = AWSTimestamp::from(1000);
+        ts += Duration::from_secs(500);
+        let secs: u64 = ts.into();
+        assert_eq!(secs, 1500);
+    }
+
+    #[test]
     fn test_timestamp_sub_duration() {
         let ts = AWSTimestamp::from(1000);
         let ts2 = ts - Duration::from_secs(500);
         let secs: u64 = ts2.into();
+        assert_eq!(secs, 500);
+    }
+
+    #[test]
+    fn test_timestamp_sub_assign() {
+        let mut ts = AWSTimestamp::from(1000);
+        ts -= Duration::from_secs(500);
+        let secs: u64 = ts.into();
         assert_eq!(secs, 500);
     }
 
@@ -116,5 +197,37 @@ mod tests {
         let ts1 = AWSTimestamp::from(1000);
         let ts2 = AWSTimestamp::from(1500);
         let _diff = ts1 - ts2;
+    }
+
+    #[test]
+    fn test_display() {
+        let ts = AWSTimestamp::from(1234);
+        assert_eq!(ts.to_string(), "1234");
+    }
+
+    #[test]
+    fn test_from_system_time() {
+        let now = SystemTime::now();
+        let ts = AWSTimestamp::from(now);
+        assert_eq!(ts.0, now);
+    }
+
+    #[test]
+    fn test_partial_eq_system_time() {
+        let now = SystemTime::now();
+        let ts = AWSTimestamp::from(now);
+        assert_eq!(ts, now);
+    }
+
+    #[test]
+    fn test_into_u64() {
+        let ts = AWSTimestamp::from(1234);
+        assert_eq!(ts.into_u64(), 1234);
+    }
+
+    #[test]
+    fn test_from_u64() {
+        let ts = AWSTimestamp::from_u64(1234);
+        assert_eq!(ts.into_u64(), 1234);
     }
 }
