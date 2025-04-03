@@ -157,14 +157,47 @@ impl From<graphql_parser::schema::InputValue<'_, String>> for Field {
         Self { name, field_type }
     }
 }
-impl ToTokens for Field {
+
+struct FieldContext<'a> {
+    field: &'a Field,
+    deserialize_only: bool,
+}
+impl<'a> FieldContext<'a> {
+    fn new(field: &'a Field, deserialize_only: bool) -> Self {
+        Self {
+            field,
+            deserialize_only,
+        }
+    }
+}
+impl ToTokens for FieldContext<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let name = self.name.to_var_ident();
-        let field_type = &self.field_type;
-        if field_type.is_optionnal() {
-            tokens.extend(quote! {
-                #[serde(default, skip_serializing_if = "Option::is_none")]
+        let field = self.field;
+        let name = field.name.to_var_ident();
+        // If the `name` identifier is different from the original name, we must serde_rename the type
+        let orig_name = field.name.orig();
+
+        let field_type = &field.field_type;
+        let mut serde_options = vec![];
+        if orig_name != name.to_string() {
+            serde_options.push(quote! {
+                rename = #orig_name
             });
+        }
+        if field_type.is_optionnal() {
+            serde_options.push(quote! {
+                default
+            });
+            if !self.deserialize_only {
+                serde_options.push(quote! {
+                    skip_serializing_if = "Option::is_none"
+                });
+            }
+        }
+        if !serde_options.is_empty() {
+            tokens.extend(quote! {
+                #[serde(#(#serde_options),*)]
+            })
         }
         tokens.extend(quote! {
             pub #name: #field_type
@@ -257,7 +290,10 @@ impl From<graphql_parser::schema::InputObjectType<'_, String>> for Structure {
 impl ToTokens for Structure {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let struct_name = self.name.to_type_ident();
-        let fields = self.fields.iter();
+        let fields = self
+            .fields
+            .iter()
+            .map(|f| FieldContext::new(f, self.deserialize_only));
         let serde_derive = if self.deserialize_only {
             quote! {::lambda_appsync::serde::Deserialize}
         } else {
