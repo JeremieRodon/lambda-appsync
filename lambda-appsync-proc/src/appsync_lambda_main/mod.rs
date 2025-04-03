@@ -242,7 +242,6 @@ impl AppsyncLambdaMain {
                         },
                     args,
                 } = event;
-                ::lambda_appsync::log::info!("operation={operation:?}");
                 operation.execute(args).await
             }
         });
