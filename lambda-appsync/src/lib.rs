@@ -139,7 +139,7 @@ pub struct AppsyncIdentity {
     #[serde(rename = "sourceIp")]
     pub source_ip: Vec<String>,
     /// Groups the authenticated user belongs to
-    pub groups: Vec<String>,
+    pub groups: Option<Vec<String>>,
     /// Additional claims/attributes associated with the identity
     pub claims: Value,
 }
@@ -466,7 +466,7 @@ mod tests {
         assert_eq!(identity.username, "testuser");
         assert_eq!(identity.issuer, "https://test");
         assert_eq!(identity.source_ip, vec!["1.2.3.4"]);
-        assert_eq!(identity.groups, vec!["group1"]);
+        assert_eq!(identity.groups.unwrap(), vec!["group1"]);
         assert_eq!(identity.claims, json!({"custom": "value"}));
     }
 
