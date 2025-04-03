@@ -179,7 +179,7 @@ impl ToTokens for FieldContext<'_> {
 
         let field_type = &field.field_type;
         let mut serde_options = vec![];
-        if orig_name != name.to_string() {
+        if name != orig_name {
             serde_options.push(quote! {
                 rename = #orig_name
             });
