@@ -21,7 +21,7 @@ The lambda-appsync crate provides procedural macros that convert GraphQL schemas
 
 ## Known limitations
 
-The framework currently has limited support for certain GraphQL schema features:
+The framework currently has limited support for certain AWS AppSync and GraphQL schema features:
 
 - GraphQL unions are not supported and will be ignored by the macro
 - GraphQL interfaces are not directly supported, though concrete types that implement interfaces will work correctly

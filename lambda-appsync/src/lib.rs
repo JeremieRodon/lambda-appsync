@@ -75,6 +75,7 @@
 
 mod aws_scalars;
 mod id;
+pub mod subscription_filters;
 
 use std::{collections::HashMap, ops::BitOr};
 
