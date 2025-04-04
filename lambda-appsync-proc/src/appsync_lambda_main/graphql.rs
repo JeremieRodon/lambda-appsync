@@ -412,7 +412,7 @@ impl Operation {
                 quote! {#return_type}
             }
             OperationKind::Subscription => quote! {
-               ()
+                ::core::option::Option<::lambda_appsync::subscription_filters::FilterGroup>
             },
         };
         let default_body = match kind {
@@ -429,7 +429,7 @@ impl Operation {
                 }
             }
             OperationKind::Subscription => quote! {
-                ::core::result::Result::Ok(())
+                ::core::result::Result::Ok(None)
             },
         };
         quote! {
