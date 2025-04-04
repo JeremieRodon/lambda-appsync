@@ -82,6 +82,7 @@ appsync_lambda_main!(
 
 ```rust
 use lambda_appsync::{appsync_operation, AppsyncError};
+use lambda_appsync::subscription_filters::{FieldPath, FilterGroup};
 // The appsync_lambda_main! macro will have created the
 // types declared in schema.graphql at the crate root
 use crate::{Player, GameStatus};
@@ -98,6 +99,15 @@ async fn get_game_status() -> Result<GameStatus, AppsyncError> {
     let client = dynamodb();
     // Implement resolver logic
     todo!()
+}
+
+#[appsync_operation(subscription(onCreatePlayer))]
+async fn on_create_player(name: String) -> Result<Option<FilterGroup>, AppsyncError> {
+    // Return a subscription filter to subscribe only
+    // to events where the player name contains the string `name`
+    Ok(Some(
+        FieldPath::new("name")?.contains(name).into()
+    ))
 }
 ```
 
