@@ -179,28 +179,81 @@ pub fn appsync_lambda_main(input: TokenStream) -> TokenStream {
 ///
 /// # Example Usage
 ///
-/// ```ignore
-/// use lambda_appsync::{appsync_operation, AppsyncError, ID};
+/// ```no_run
+/// use lambda_appsync::{appsync_operation, AppsyncError};
+/// # lambda_appsync::appsync_lambda_main!(
+/// #    "schema.graphql",
+/// #     exclude_lambda_handler = true,
+/// # );
+/// # async fn dynamodb_get_players() -> Result<Vec<Player>, AppsyncError> {
+/// #    todo!()
+/// # }
+/// # async fn dynamodb_create_player(name: String) -> Result<Player, AppsyncError> {
+/// #    todo!()
+/// # }
 ///
-/// // Execute when a 'getUser' query is received
-/// #[appsync_operation(query(getUser))]
-/// async fn get_user(id: ID) -> Result<User, AppsyncError> {
+/// // Execute when a 'players' query is received
+/// #[appsync_operation(query(players))]
+/// async fn get_players() -> Result<Vec<Player>, AppsyncError> {
 ///     // Implement resolver logic
-///     Ok(dynamodb_get_user(id).await?)
+///     Ok(dynamodb_get_players().await?)
 /// }
 ///
-/// // Handle a 'createUser' mutation
-/// #[appsync_operation(mutation(createUser))]
-/// async fn create_user(name: String, email: String) -> Result<User, AppsyncError> {
-///     Ok(dynamodb_create_user(name, email).await?)
+/// // Handle a 'createPlayer' mutation
+/// #[appsync_operation(mutation(createPlayer))]
+/// async fn create_player(name: String) -> Result<Player, AppsyncError> {
+///     Ok(dynamodb_create_player(name).await?)
 /// }
 ///
+/// // (Optional) Use an enhanced subscription filter for onCreatePlayer
+/// use lambda_appsync::subscription_filters::{FilterGroup, Filter, FieldPath};
+/// #[appsync_operation(subscription(onCreatePlayer))]
+/// async fn on_create_player(name: String) -> Result<Option<FilterGroup>, AppsyncError> {
+///     Ok(Some(FilterGroup::from([
+///         Filter::from([
+///             FieldPath::new("name")?.contains(name)
+///         ])
+///     ])))
+/// }
+/// # fn main() {}
+/// ```
+///
+/// When using a single [FieldPath](lambda_appsync::subscription_filters::FieldPath) you can turn it directly into a [FilterGroup](lambda_appsync::subscription_filters::FilterGroup)
+/// ```no_run
+/// # use lambda_appsync::{appsync_operation, AppsyncError};
+/// # lambda_appsync::appsync_lambda_main!(
+/// #    "schema.graphql",
+/// #     exclude_lambda_handler = true,
+/// # );
+/// use lambda_appsync::subscription_filters::{FilterGroup, Filter, FieldPath};
+/// #[appsync_operation(subscription(onCreatePlayer))]
+/// async fn on_create_player(name: String) -> Result<Option<FilterGroup>, AppsyncError> {
+///     Ok(Some(FieldPath::new("name")?.contains(name).into()))
+/// }
+/// # fn main() {}
+/// ```
+///
+/// By default the #[appsync_operation(...)] macro will discard your function's name but
+/// you can also keep it available:
+/// ```no_run
+/// use lambda_appsync::{appsync_operation, AppsyncError};
+/// # lambda_appsync::appsync_lambda_main!(
+/// #    "schema.graphql",
+/// #     exclude_lambda_handler = true,
+/// # );
+/// # async fn dynamodb_get_players() -> Result<Vec<Player>, AppsyncError> {
+/// #    todo!()
+/// # }
+/// # async fn dynamodb_create_player(name: String) -> Result<Player, AppsyncError> {
+/// #    todo!()
+/// # }
 /// // Keep the original function name available separately
-/// #[appsync_operation(query(getUser), keep_original_function_name)]
-/// async fn fetch_user(id: ID) -> Result<User, AppsyncError> {
-///     // Can still call fetch_user() directly
-///     Ok(dynamodb_get_user(id).await?)
+/// #[appsync_operation(query(players), keep_original_function_name)]
+/// async fn fetch_players() -> Result<Vec<Player>, AppsyncError> {
+///     // Can still call fetch_players() directly
+///     Ok(dynamodb_get_players().await?)
 /// }
+/// # fn main() {}
 /// ```
 ///
 /// The macro will ensure the function signature matches what is defined in the GraphQL schema,

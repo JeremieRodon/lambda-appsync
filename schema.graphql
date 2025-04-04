@@ -4,7 +4,12 @@ type Query {
 }
 
 type Mutation {
-  createUser(name: String!): Player!
+  createPlayer(name: String!): Player!
+}
+
+type Subscription {
+  onCreatePlayer(name: String!): Player
+    @aws_subscribe(mutations: ["createPlayer"])
 }
 
 type Player {
