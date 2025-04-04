@@ -66,7 +66,9 @@
 
 use serde::Serialize;
 
-use crate::AppsyncError;
+use crate::{
+    AWSDate, AWSDateTime, AWSEmail, AWSPhone, AWSTime, AWSTimestamp, AWSUrl, AppsyncError, ID,
+};
 
 /// Private marker trait for types that can be used in filter values
 pub trait IFSValueMarker: private::Sealed + Serialize {
@@ -99,10 +101,58 @@ macro_rules! impl_markers {
 impl_markers!(
     IFSBValueMarker,
     private::Sealed
-        | (u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, f32, f64, bool, String, &str)
+        | (
+            u8,
+            i8,
+            u16,
+            i16,
+            u32,
+            i32,
+            u64,
+            i64,
+            u128,
+            i128,
+            f32,
+            f64,
+            bool,
+            String,
+            &str,
+            ID,
+            AWSEmail,
+            AWSUrl,
+            AWSDate,
+            AWSTime,
+            AWSPhone,
+            AWSDateTime,
+            AWSTimestamp
+        )
 );
 impl_markers!(
-    IFSValueMarker | (u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, f32, f64, String, &str)
+    IFSValueMarker
+        | (
+            u8,
+            i8,
+            u16,
+            i16,
+            u32,
+            i32,
+            u64,
+            i64,
+            u128,
+            i128,
+            f32,
+            f64,
+            String,
+            &str,
+            ID,
+            AWSEmail,
+            AWSUrl,
+            AWSDate,
+            AWSTime,
+            AWSPhone,
+            AWSDateTime,
+            AWSTimestamp
+        )
 );
 
 /// Fixed-size vector for operators with size limits
