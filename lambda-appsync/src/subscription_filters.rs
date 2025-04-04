@@ -586,6 +586,12 @@ where
     }
 }
 
+impl From<FieldFilter> for Filter {
+    fn from(value: FieldFilter) -> Self {
+        Filter::from([value])
+    }
+}
+
 /// A filter group limited to 10 filters combined with OR logic
 ///
 /// Can be created from an arrays of up to 10 [Filter] elements.
@@ -623,6 +629,17 @@ where
         Self {
             filters: filters.into(),
         }
+    }
+}
+
+impl From<FieldFilter> for FilterGroup {
+    fn from(value: FieldFilter) -> Self {
+        FilterGroup::from(Filter::from([value]))
+    }
+}
+impl From<Filter> for FilterGroup {
+    fn from(value: Filter) -> Self {
+        FilterGroup::from([value])
     }
 }
 
