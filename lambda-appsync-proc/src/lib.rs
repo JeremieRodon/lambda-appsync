@@ -258,6 +258,16 @@ pub fn appsync_lambda_main(input: TokenStream) -> TokenStream {
 ///
 /// The macro will ensure the function signature matches what is defined in the GraphQL schema,
 /// and wire it up to be called when AWS AppSync invokes the Lambda resolver for that operation.
+///
+///
+/// # Important Note
+///
+/// When using enhenced subscription filters (i.e. returning a [FilterGroup](lambda_appsync::subscription_filters::FilterGroup)
+/// from Subscribe operation handlers), you need to modify your ***Response*** mapping in AWS AppSync.
+/// It must contain exactly the following:
+///
+/// `$extensions.setSubscriptionFilter($context.result.data)null`
+///
 #[proc_macro_attribute]
 pub fn appsync_operation(args: TokenStream, input: TokenStream) -> TokenStream {
     appsync_operation::appsync_operation_impl(args, input)

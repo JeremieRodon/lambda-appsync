@@ -113,6 +113,18 @@ async fn on_create_player(name: String) -> Result<Option<FilterGroup>, AppsyncEr
 
 The framework's macros verify function signatures match the GraphQL schema and automatically wire everything up to handle AWS AppSync requests.
 
+### Important Note
+
+When using enhenced subscription filters (i.e. returning a [FilterGroup](lambda_appsync::subscription_filters::FilterGroup) from Subscribe operation handlers), you need to modify your ***Response*** mapping in AWS AppSync.
+
+It must contain exactly the following:
+
+```
+$extensions.setSubscriptionFilter($context.result.data)null
+```
+
+Yes! We the `null` after the extension function call.
+
 ## Example project
 
 Check out our [complete sample project](https://github.com/JeremieRodon/demo-rust-lambda-appsync) that demonstrates lambda-appsync in action! This full-featured demo implements a GraphQL API for a mini-game web application using AWS AppSync and Lambda, showcasing:
