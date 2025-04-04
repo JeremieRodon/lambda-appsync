@@ -7,7 +7,7 @@
 //!
 //! # Complete Example
 //!
-//! ```ignore
+//! ```no_run
 //! use lambda_appsync::{appsync_lambda_main, appsync_operation, AppsyncError};
 //!
 //! // 1. First define your GraphQL schema (e.g. `schema.graphql`):
@@ -52,9 +52,11 @@
 //!     // Enable validation hook
 //!     hook = verify_request,
 //!     // Enable batch processing
-//!     batch = true
+//!     batch = true,
+//! #   exclude_lambda_handler = true,
 //! );
-//!
+//! # fn dynamodb() -> aws_sdk_dynamodb::Client {todo!()}
+//! # fn main() {}
 //! // 3. Implement resolver functions for GraphQL operations:
 //!
 //! #[appsync_operation(query(players))]
