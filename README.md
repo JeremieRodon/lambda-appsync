@@ -115,15 +115,16 @@ The framework's macros verify function signatures match the GraphQL schema and a
 
 ### Important Note
 
-When using enhenced subscription filters (i.e. returning a [FilterGroup](lambda_appsync::subscription_filters::FilterGroup) from Subscribe operation handlers), you need to modify your ***Response*** mapping in AWS AppSync.
+When using enhanced subscription filters (i.e., returning a [FilterGroup](lambda_appsync::subscription_filters::FilterGroup) from Subscribe operation handlers), you need to modify your ***Response*** mapping in AWS AppSync.
 
 It must contain exactly the following:
 
+```vtl
+#if($context.result.data)
+$extensions.setSubscriptionFilter($context.result.data)
+#end
+null
 ```
-$extensions.setSubscriptionFilter($context.result.data)null
-```
-
-Yes! We the `null` after the extension function call.
 
 ## Example project
 

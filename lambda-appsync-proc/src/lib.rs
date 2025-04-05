@@ -264,12 +264,16 @@ pub fn appsync_lambda_main(input: TokenStream) -> TokenStream {
 ///
 /// # Important Note
 ///
-/// When using enhenced subscription filters (i.e. returning a [FilterGroup](lambda_appsync::subscription_filters::FilterGroup)
+/// When using enhanced subscription filters (i.e., returning a [FilterGroup](lambda_appsync::subscription_filters::FilterGroup)
 /// from Subscribe operation handlers), you need to modify your ***Response*** mapping in AWS AppSync.
-/// It must contain exactly the following:
+/// It must contain the following:
 ///
-/// `$extensions.setSubscriptionFilter($context.result.data)null`
-///
+/// ```
+/// #if($context.result.data)
+/// $extensions.setSubscriptionFilter($context.result.data)
+/// #end
+/// null
+/// ```
 #[proc_macro_attribute]
 pub fn appsync_operation(args: TokenStream, input: TokenStream) -> TokenStream {
     appsync_operation::appsync_operation_impl(args, input)
