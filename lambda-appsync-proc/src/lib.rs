@@ -268,7 +268,7 @@ pub fn appsync_lambda_main(input: TokenStream) -> TokenStream {
 /// from Subscribe operation handlers), you need to modify your ***Response*** mapping in AWS AppSync.
 /// It must contain the following:
 ///
-/// ```
+/// ```vtl
 /// #if($context.result.data)
 /// $extensions.setSubscriptionFilter($context.result.data)
 /// #end
