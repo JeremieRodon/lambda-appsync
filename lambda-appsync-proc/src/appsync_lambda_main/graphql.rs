@@ -52,7 +52,7 @@ impl ToTokens for Scalar {
         tokens.extend(match self {
             Scalar::String => quote! {String},
             Scalar::ID => quote! {::lambda_appsync::ID},
-            Scalar::Int => quote! {i64},
+            Scalar::Int => quote! {i32},
             Scalar::Float => quote! {f64},
             Scalar::Boolean => quote! {bool},
             Scalar::AWSEmail => quote! {::lambda_appsync::AWSEmail},
