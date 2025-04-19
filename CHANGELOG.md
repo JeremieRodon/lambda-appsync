@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## v0.4.1 - 2025-04-19
+## v0.4.2 - 2025-04-19
+
+- 7a72565 Making clippy happy
+
+
+## v0.4.1 - 2025-04-19 (unpublished)
 
 - a0b8136 Fix/Improv: Making the test_null_handling integration test actually usefull by introcuding a type with a nullable field in the GraphQL schema
 
