@@ -1,4 +1,3 @@
-use lambda_appsync;
 use lambda_appsync::serde_json::json;
 
 // Generate the types from our test schema
@@ -48,7 +47,7 @@ fn test_team_enum() {
     assert_eq!(teams, Team::all());
 
     for team in teams {
-        let json = serde_json::to_value(&team).unwrap();
+        let json = serde_json::to_value(team).unwrap();
         let deserialized: Team = serde_json::from_value(json).unwrap();
         assert_eq!(team, deserialized);
     }
@@ -59,7 +58,7 @@ fn test_game_status_enum() {
     let statuses = vec![GameStatus::Started, GameStatus::Stopped];
 
     for status in statuses {
-        let json = serde_json::to_value(&status).unwrap();
+        let json = serde_json::to_value(status).unwrap();
         let deserialized: GameStatus = serde_json::from_value(json).unwrap();
         assert_eq!(status, deserialized);
     }
