@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 /// A custom UUID-based identifier type for AppSync GraphQL objects.
 ///
-/// This type wraps a UUIDv4 to provide a standardized way of identifying objects
+/// This type wraps a [Uuid](uuid::Uuid) (v4) to provide a standardized way of identifying objects
 /// in AppSync while ensuring type safety and validation. It implements serialization
 /// and deserialization as [String] as expected by GraphQL.
 ///

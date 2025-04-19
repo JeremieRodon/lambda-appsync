@@ -122,7 +122,7 @@ use proc_macro::TokenStream;
 /// - Function name: Any valid Rust identifier that will be used to access the client
 /// - Return type: Must be a valid AWS SDK client like `aws_sdk_dynamodb::Client`
 ///
-/// ```ignore
+/// ```no_run
 /// use lambda_appsync::appsync_lambda_main;
 ///
 /// // Single client
@@ -130,25 +130,34 @@ use proc_macro::TokenStream;
 ///     "schema.graphql",
 ///     dynamodb() -> aws_sdk_dynamodb::Client,
 /// );
-///
+/// ```
+/// ```no_run
+/// # use lambda_appsync::appsync_lambda_main;
 /// // Multiple clients
 /// appsync_lambda_main!(
 ///     "schema.graphql",
 ///     dynamodb() -> aws_sdk_dynamodb::Client,
 ///     s3() -> aws_sdk_s3::Client,
-///     sqs() -> aws_sdk_sqs::Client,
 /// );
 /// ```
 ///
 /// These client functions can then be called from anywhere in the Lambda crate:
-///
-/// ```ignore
+/// ```no_run
+/// # fn dynamodb() -> aws_sdk_dynamodb::Client {
+/// #  todo!()
+/// # }
+/// # fn s3() -> aws_sdk_s3::Client {
+/// #   todo!()
+/// # }
+/// # mod sub {
 /// use crate::{dynamodb, s3};
 /// async fn do_something() {
 ///     let dynamodb_client = dynamodb();
 ///     let s3_client = s3();
 ///     // Use clients...
 /// }
+/// # }
+/// # fn main() {}
 /// ```
 ///
 /// # Examples
@@ -157,14 +166,13 @@ use proc_macro::TokenStream;
 /// ```no_run
 /// use lambda_appsync::{appsync_lambda_main, AppsyncEvent, AppsyncResponse, AppsyncIdentity};
 ///
-///  fn is_authorized(identity: Option<&AppsyncIdentity>) -> bool {
+/// fn is_authorized(identity: Option<&AppsyncIdentity>) -> bool {
 ///     todo!()
 /// }
 ///
-/// // If the function returns Some(AppsyncResponse), the Lambda function will immediatly return it
-/// // Else, the normal flow of the AppSync operation processing will continue
-/// // This is primarily intended for advanced authentication checks that AppSync cannot perform,
-/// // such as verifying that a user is requesting their own ID for example.
+/// // If the function returns Some(AppsyncResponse), the Lambda function will immediately return it.
+/// // Otherwise, the normal flow of the AppSync operation processing will continue.
+/// // This is primarily intended for advanced authentication checks that AppSync cannot perform, such as verifying that a user is requesting their own ID.
 /// async fn auth_hook(
 ///     event: &lambda_appsync::AppsyncEvent<Operation>
 /// ) -> Option<lambda_appsync::AppsyncResponse> {
@@ -191,13 +199,11 @@ use proc_macro::TokenStream;
 /// );
 /// ```
 ///
-/// Override field types and use multiple AWS clients:
+/// Override field types (you can use this option multiple times):
 /// ```no_run
 /// use lambda_appsync::appsync_lambda_main;
 /// appsync_lambda_main!(
 ///     "schema.graphql",
-///     dynamodb() -> aws_sdk_dynamodb::Client,
-///     s3() -> aws_sdk_s3::Client,
 ///     // Use String instead of the default lambda_appsync::ID
 ///     field_type_override = Player.id: String,
 /// );
