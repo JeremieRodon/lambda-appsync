@@ -22,3 +22,6 @@ Cargo.lock
 
 # Direnv
 /.direnv
+
+# Git hooks
+lambda-appsync/.git/hooks/*
