@@ -103,3 +103,7 @@ type WeirdFieldNames {
   u128: Int!
   usize: Int!
 }
+
+type OptionalTeam {
+  team: Team
+}

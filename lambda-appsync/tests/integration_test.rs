@@ -173,15 +173,19 @@ fn test_invalid_deserialization() {
 
 #[test]
 fn test_null_handling() {
-    let player_id = lambda_appsync::ID::new();
-    // Test that nullable fields accept null
+    // Test that optional team accepts null
     let json = json!({
-        "id": player_id,
-        "name": "Test Player",
-        "team": "RUST",
-        "optional_field": null
+        "team": null
     });
 
-    let player: Player = serde_json::from_value(json).unwrap();
-    assert_eq!(player.id, player_id);
+    let optional_team: OptionalTeam = serde_json::from_value(json.clone()).unwrap();
+    assert!(optional_team.team.is_none());
+
+    // Test that optional team accepts a valid team value
+    let json = json!({
+        "team": "RUST"
+    });
+
+    let optional_team: OptionalTeam = serde_json::from_value(json.clone()).unwrap();
+    assert_eq!(optional_team.team, Some(Team::Rust));
 }
