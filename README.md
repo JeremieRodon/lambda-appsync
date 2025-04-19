@@ -39,7 +39,7 @@ lambda-appsync = "0.4.2"
 
 ## Quick Start
 
-1. Create your GraphQL schema file (e.g. `schema.graphql`):
+1. Create your GraphQL schema file (e.g. `graphql/schema.gql`). When in a workspace context, all relative paths are assumed to be relative to the workspace root directory:
 
 ```graphql
 type Query {
@@ -72,7 +72,7 @@ use lambda_appsync::appsync_lambda_main;
 
 // Generate types and runtime setup from schema
 appsync_lambda_main!(
-    "schema.graphql",
+    "graphql/schema.gql",
     // Initialize DynamoDB client if needed
     dynamodb() -> aws_sdk_dynamodb::Client,
 );
@@ -84,7 +84,7 @@ appsync_lambda_main!(
 use lambda_appsync::{appsync_operation, AppsyncError};
 use lambda_appsync::subscription_filters::{FieldPath, FilterGroup};
 // The appsync_lambda_main! macro will have created the
-// types declared in schema.graphql at the crate root
+// types declared in schema.gql at the crate root
 use crate::{Player, GameStatus};
 
 #[appsync_operation(query(players))]
@@ -145,7 +145,7 @@ Override generated Rust types for specific GraphQL fields:
 
 ```rust
 appsync_lambda_main!(
-    "schema.graphql",
+    "graphql/schema.gql",
     // Override Player.id type to be String instead of ID on the Rust struct
     field_type_override = Player.id: String
 );
@@ -170,7 +170,7 @@ For larger projects, share GraphQL types across multiple Lambda functions while 
 ```rust
 // In a shared library crate:
 appsync_lambda_main!(
-    "schema.graphql",
+    "graphql/schema.gql",
     only_appsync_types = true,
 );
 
@@ -178,7 +178,7 @@ appsync_lambda_main!(
 use shared_lib::*;
 
 appsync_lambda_main!(
-    "schema.graphql",
+    "graphql/schema.gql",
     exclude_appsync_types = true,
     dynamodb() -> aws_sdk_dynamodb::Client
 );

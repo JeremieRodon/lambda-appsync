@@ -10,7 +10,8 @@
 //! ```no_run
 //! use lambda_appsync::{appsync_lambda_main, appsync_operation, AppsyncError};
 //!
-//! // 1. First define your GraphQL schema (e.g. `schema.graphql`):
+//! // 1. First define your GraphQL schema in a file (path can be relative to crate root
+//! // or workspace root depending on the Cargo invocation context, e.g. `schema.graphql`):
 //! //
 //! // type Query {
 //! //   players: [Player!]!
@@ -91,6 +92,15 @@ use proc_macro::TokenStream;
 /// - AWS Lambda runtime setup with logging to handle the AWS AppSync event
 /// - Optional AWS SDK client initialization
 ///
+/// # Schema Path Argument
+///
+/// The first argument to this macro must be a string literal containing the path to your GraphQL schema file.
+/// The schema path can be:
+///
+/// - An absolute filesystem path (e.g. "/home/user/project/schema.graphql")
+/// - A relative path, that will be relative to your crate's root directory (e.g. "schema.graphql", "graphql/schema.gql")
+/// - When in a workspace context, the relative path will be relative to the workspace root directory
+///
 /// # Options
 ///
 /// - `batch = bool`: Enable/disable batch request handling (default: true)
@@ -102,6 +112,44 @@ use proc_macro::TokenStream;
 /// - `exclude_appsync_operations = bool`: Skip generation of operation enums
 /// - `only_appsync_operations = bool`: Only generate operation enums
 /// - `field_type_override = Type.field: CustomType`: Override type of a specific field
+///
+/// # AWS SDK Clients
+///
+/// AWS SDK clients can be initialized by providing function definitions that return a cached SDK client type.
+/// Each client is initialized only once and stored in a static [OnceCell], making subsequent function calls
+/// essentially free:
+///
+/// - Function name: Any valid Rust identifier that will be used to access the client
+/// - Return type: Must be a valid AWS SDK client like `aws_sdk_dynamodb::Client`
+///
+/// ```ignore
+/// use lambda_appsync::appsync_lambda_main;
+///
+/// // Single client
+/// appsync_lambda_main!(
+///     "schema.graphql",
+///     dynamodb() -> aws_sdk_dynamodb::Client,
+/// );
+///
+/// // Multiple clients
+/// appsync_lambda_main!(
+///     "schema.graphql",
+///     dynamodb() -> aws_sdk_dynamodb::Client,
+///     s3() -> aws_sdk_s3::Client,
+///     sqs() -> aws_sdk_sqs::Client,
+/// );
+/// ```
+///
+/// These client functions can then be called from anywhere in the Lambda crate:
+///
+/// ```ignore
+/// use crate::{dynamodb, s3};
+/// async fn do_something() {
+///     let dynamodb_client = dynamodb();
+///     let s3_client = s3();
+///     // Use clients...
+/// }
+/// ```
 ///
 /// # Examples
 ///
