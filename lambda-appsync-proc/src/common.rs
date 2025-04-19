@@ -163,8 +163,86 @@ impl Name {
     pub(crate) fn to_type_ident(&self) -> proc_macro2::Ident {
         proc_macro2::Ident::new(&self.to_case(CaseType::Pascal), self.span)
     }
+    /// Converts the name to a valid Rust identifier in snake case, automatically escaping Rust keywords.
+    ///
+    /// # Note
+    ///
+    /// Most Rust keywords can be escaped using the `r#` prefix to make them valid identifiers.
+    /// However, some keywords like `crate`, `self`, `super` cannot be escaped this way
+    /// and will instead be prefixed with `r_` (e.g. `r_self`).
     pub(crate) fn to_var_ident(&self) -> proc_macro2::Ident {
-        proc_macro2::Ident::new(&self.to_case(CaseType::Snake), self.span)
+        // List of Rust keywords that need escaping
+        const RUST_KEYWORDS: &[&str] = &[
+            // Keywords used in current Rust
+            "as",
+            "async",
+            "await",
+            "break",
+            "const",
+            "continue",
+            "dyn",
+            "else",
+            "enum",
+            "extern",
+            "false",
+            "fn",
+            "for",
+            "if",
+            "impl",
+            "in",
+            "let",
+            "loop",
+            "match",
+            "mod",
+            "move",
+            "mut",
+            "pub",
+            "ref",
+            "return",
+            "static",
+            "struct",
+            "trait",
+            "true",
+            "type",
+            "unsafe",
+            "use",
+            "where",
+            "while",
+            // Reserved keywords
+            "abstract",
+            "become",
+            "box",
+            "do",
+            "final",
+            "macro",
+            "override",
+            "priv",
+            "try",
+            "gen",
+            "typeof",
+            "unsized",
+            "virtual",
+            "yield",
+            // Weak keywords
+            "macro_rules",
+            "union",
+            "'static",
+            "safe",
+            "raw",
+        ];
+        const RUST_INESCAPABLE_KEYWORDS: &[&str] = &[
+            // Keywords that cannot be escaped with r#
+            "crate", "self", "super",
+        ];
+        let ident_str = self.to_case(CaseType::Snake);
+
+        if self.words.len() == 1 && RUST_INESCAPABLE_KEYWORDS.contains(&ident_str.as_str()) {
+            proc_macro2::Ident::new(&format!("r_{}", ident_str), self.span)
+        } else if self.words.len() == 1 && RUST_KEYWORDS.contains(&ident_str.as_str()) {
+            proc_macro2::Ident::new_raw(&ident_str, self.span)
+        } else {
+            proc_macro2::Ident::new(&ident_str, self.span)
+        }
     }
     pub(crate) fn to_unused_param_ident(&self) -> proc_macro2::Ident {
         proc_macro2::Ident::new(&format!("_{}", self.to_case(CaseType::Snake)), self.span)

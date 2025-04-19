@@ -16,13 +16,6 @@ type Player {
   id: ID!
   name: String!
   team: Team!
-  # Extra fields using Rust keywords
-  async: Boolean!
-  type: Boolean!
-  use: Boolean!
-  # Extra fields using Rust type names
-  bool: Boolean!
-  u32: Integer!
 }
 
 enum Team {
@@ -34,4 +27,79 @@ enum Team {
 enum GameStatus {
   STARTED
   STOPPED
+}
+
+type WeirdFieldNames {
+  # Rust keywords
+  as: Boolean!
+  async: Boolean!
+  await: Boolean!
+  break: Boolean!
+  const: Boolean!
+  continue: Boolean!
+  crate: Boolean!
+  dyn: Boolean!
+  else: Boolean!
+  enum: Boolean!
+  extern: Boolean!
+  false: Boolean!
+  fn: Boolean!
+  for: Boolean!
+  if: Boolean!
+  impl: Boolean!
+  in: Boolean!
+  let: Boolean!
+  loop: Boolean!
+  match: Boolean!
+  mod: Boolean!
+  move: Boolean!
+  mut: Boolean!
+  pub: Boolean!
+  ref: Boolean!
+  return: Boolean!
+  self: Boolean!
+  static: Boolean!
+  struct: Boolean!
+  super: Boolean!
+  trait: Boolean!
+  true: Boolean!
+  type: Boolean!
+  unsafe: Boolean!
+  use: Boolean!
+  where: Boolean!
+  while: Boolean!
+
+  # Reserved keywords
+  abstract: Boolean!
+  become: Boolean!
+  box: Boolean!
+  do: Boolean!
+  final: Boolean!
+  macro: Boolean!
+  override: Boolean!
+  priv: Boolean!
+  try: Boolean!
+  typeof: Boolean!
+  unsized: Boolean!
+  virtual: Boolean!
+  yield: Boolean!
+
+  # Primitive types
+  bool: Boolean!
+  char: String!
+  f32: Float!
+  f64: Float!
+  i8: Int!
+  i16: Int!
+  i32: Int!
+  i64: Int!
+  i128: Int!
+  isize: Int!
+  str: String!
+  u8: Int!
+  u16: Int!
+  u32: Int!
+  u64: Int!
+  u128: Int!
+  usize: Int!
 }
