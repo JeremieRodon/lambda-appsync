@@ -63,11 +63,16 @@ impl std::borrow::Borrow<str> for Word {
 #[derive(Debug)]
 pub(crate) struct Name {
     orig: String,
-    span: Option<Span>,
+    span: Span,
     words: Vec<Word>,
 }
 impl From<String> for Name {
     fn from(value: String) -> Self {
+        Self::from((value, Span::call_site()))
+    }
+}
+impl From<(String, Span)> for Name {
+    fn from((value, span): (String, Span)) -> Self {
         match CaseType::case(value.as_str()) {
             CaseType::Camel => {
                 let mut words = vec![];
@@ -81,7 +86,7 @@ impl From<String> for Name {
                 words.push(Word(value[slice_start..].to_lowercase()));
                 Name {
                     orig: value,
-                    span: None,
+                    span,
                     words,
                 }
             }
@@ -97,7 +102,7 @@ impl From<String> for Name {
                 words.push(Word(value[slice_start..].to_lowercase()));
                 Name {
                     orig: value,
-                    span: None,
+                    span,
                     words,
                 }
             }
@@ -105,7 +110,7 @@ impl From<String> for Name {
                 let words = value.split('_').map(|w| Word(w.to_owned())).collect();
                 Name {
                     orig: value,
-                    span: None,
+                    span,
                     words,
                 }
             }
@@ -113,7 +118,7 @@ impl From<String> for Name {
                 let words = value.split('_').map(|w| Word(w.to_lowercase())).collect();
                 Name {
                     orig: value,
-                    span: None,
+                    span,
                     words,
                 }
             }
@@ -124,9 +129,9 @@ impl Name {
     pub(crate) fn orig(&self) -> &str {
         &self.orig
     }
-    pub(crate) fn set_span(&mut self, span: Span) {
-        self.span = Some(span);
-    }
+    // pub(crate) fn set_span(&mut self, span: Span) {
+    //     self.span = Some(span);
+    // }
     pub(crate) fn to_case(&self, case: CaseType) -> String {
         match case {
             CaseType::Camel => {
@@ -156,27 +161,18 @@ impl Name {
         }
     }
     pub(crate) fn to_type_ident(&self) -> proc_macro2::Ident {
-        proc_macro2::Ident::new(
-            &self.to_case(CaseType::Pascal),
-            self.span.unwrap_or_else(|| Span::call_site()),
-        )
+        proc_macro2::Ident::new(&self.to_case(CaseType::Pascal), self.span)
     }
     pub(crate) fn to_var_ident(&self) -> proc_macro2::Ident {
-        proc_macro2::Ident::new(
-            &self.to_case(CaseType::Snake),
-            self.span.unwrap_or_else(|| Span::call_site()),
-        )
+        proc_macro2::Ident::new(&self.to_case(CaseType::Snake), self.span)
     }
     pub(crate) fn to_unused_param_ident(&self) -> proc_macro2::Ident {
-        proc_macro2::Ident::new(
-            &format!("_{}", self.to_case(CaseType::Snake)),
-            self.span.unwrap_or_else(|| Span::call_site()),
-        )
+        proc_macro2::Ident::new(&format!("_{}", self.to_case(CaseType::Snake)), self.span)
     }
     pub(crate) fn to_prefixed_fct_ident(&self, prefix: &str) -> proc_macro2::Ident {
         proc_macro2::Ident::new(
             &format!("{prefix}_{}", self.to_case(CaseType::Snake)),
-            self.span.unwrap_or_else(|| Span::call_site()),
+            self.span,
         )
     }
 }

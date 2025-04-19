@@ -89,8 +89,7 @@ impl FieldType {
         if let Ok(scalar) = Scalar::try_from(name.as_str()) {
             Self::Scalar(scalar)
         } else {
-            let mut name = Name::from(name);
-            name.set_span(current_span());
+            let name = Name::from((name, current_span()));
             Self::Custom { name }
         }
     }
@@ -155,16 +154,14 @@ struct Field {
 }
 impl From<graphql_parser::schema::Field<'_, String>> for Field {
     fn from(value: graphql_parser::schema::Field<'_, String>) -> Self {
-        let mut name = Name::from(value.name);
-        name.set_span(current_span());
+        let name = Name::from((value.name, current_span()));
         let field_type = FieldType::from(value.field_type);
         Self { name, field_type }
     }
 }
 impl From<graphql_parser::schema::InputValue<'_, String>> for Field {
     fn from(value: graphql_parser::schema::InputValue<'_, String>) -> Self {
-        let mut name = Name::from(value.name);
-        name.set_span(current_span());
+        let name = Name::from((value.name, current_span()));
         let field_type = FieldType::from(value.value_type);
         Self { name, field_type }
     }
@@ -280,8 +277,7 @@ impl Structure {
 }
 impl From<graphql_parser::schema::ObjectType<'_, String>> for Structure {
     fn from(value: graphql_parser::schema::ObjectType<'_, String>) -> Self {
-        let mut name = Name::from(value.name);
-        name.set_span(current_span());
+        let name = Name::from((value.name, current_span()));
         let fields = value.fields.into_iter().map(Field::from).collect();
         Self {
             name,
@@ -330,12 +326,11 @@ struct Enum {
 }
 impl From<graphql_parser::schema::EnumType<'_, String>> for Enum {
     fn from(value: graphql_parser::schema::EnumType<'_, String>) -> Self {
-        let mut name = Name::from(value.name);
-        name.set_span(current_span());
+        let name = Name::from((value.name, current_span()));
         let variants = value
             .values
             .into_iter()
-            .map(|v| Name::from(v.name))
+            .map(|v| Name::from((v.name, current_span())))
             .collect();
         Self { name, variants }
     }
