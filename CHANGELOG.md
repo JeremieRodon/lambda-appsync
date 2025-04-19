@@ -5,7 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## v0.4.0 - 2025-04-19
+## v0.4.1 - 2025-04-19
+
+- a0b8136 Fix/Improv: Making the test_null_handling integration test actually usefull by introcuding a type with a nullable field in the GraphQL schema
+
+## v0.4.0 - 2025-04-19 (unpublished)
 
 - 4e316a7 Feat: Adding integration tests testing ser/de of the macro-generated strcutures
 - c3424e5 Fix: Making sure Rust keywords are properly escaped when used as field names in the GraphQL schema, e.g. a field named 'type' in the GraphQL schema will become 'r#type' in the Rust structure. Note that crate, self and super are special Rust keywords that cannot be escaped using the 'r#' syntax, instead they will be prefixed with 'r_', e.g. a field named 'crate' will become 'r_crate'
