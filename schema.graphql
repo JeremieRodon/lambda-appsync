@@ -16,6 +16,13 @@ type Player {
   id: ID!
   name: String!
   team: Team!
+  # Extra fields using Rust keywords
+  async: Boolean!
+  type: Boolean!
+  use: Boolean!
+  # Extra fields using Rust type names
+  bool: Boolean!
+  u32: Integer!
 }
 
 enum Team {
