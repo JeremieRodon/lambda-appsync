@@ -1,3 +1,5 @@
+use proc_macro2::Span;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum CaseType {
     Camel,  // Lowercase separated by Uppercase letters, first letter lower
@@ -61,6 +63,7 @@ impl std::borrow::Borrow<str> for Word {
 #[derive(Debug)]
 pub(crate) struct Name {
     orig: String,
+    span: Option<Span>,
     words: Vec<Word>,
 }
 impl From<String> for Name {
@@ -76,7 +79,11 @@ impl From<String> for Name {
                     }
                 }
                 words.push(Word(value[slice_start..].to_lowercase()));
-                Name { orig: value, words }
+                Name {
+                    orig: value,
+                    span: None,
+                    words,
+                }
             }
             CaseType::Pascal => {
                 let mut words = vec![];
@@ -88,15 +95,27 @@ impl From<String> for Name {
                     }
                 }
                 words.push(Word(value[slice_start..].to_lowercase()));
-                Name { orig: value, words }
+                Name {
+                    orig: value,
+                    span: None,
+                    words,
+                }
             }
             CaseType::Snake => {
                 let words = value.split('_').map(|w| Word(w.to_owned())).collect();
-                Name { orig: value, words }
+                Name {
+                    orig: value,
+                    span: None,
+                    words,
+                }
             }
             CaseType::Upper => {
                 let words = value.split('_').map(|w| Word(w.to_lowercase())).collect();
-                Name { orig: value, words }
+                Name {
+                    orig: value,
+                    span: None,
+                    words,
+                }
             }
         }
     }
@@ -104,6 +123,9 @@ impl From<String> for Name {
 impl Name {
     pub(crate) fn orig(&self) -> &str {
         &self.orig
+    }
+    pub(crate) fn set_span(&mut self, span: Span) {
+        self.span = Some(span);
     }
     pub(crate) fn to_case(&self, case: CaseType) -> String {
         match case {
@@ -136,25 +158,25 @@ impl Name {
     pub(crate) fn to_type_ident(&self) -> proc_macro2::Ident {
         proc_macro2::Ident::new(
             &self.to_case(CaseType::Pascal),
-            proc_macro2::Span::call_site(),
+            self.span.unwrap_or_else(|| Span::call_site()),
         )
     }
     pub(crate) fn to_var_ident(&self) -> proc_macro2::Ident {
         proc_macro2::Ident::new(
             &self.to_case(CaseType::Snake),
-            proc_macro2::Span::call_site(),
+            self.span.unwrap_or_else(|| Span::call_site()),
         )
     }
     pub(crate) fn to_unused_param_ident(&self) -> proc_macro2::Ident {
         proc_macro2::Ident::new(
             &format!("_{}", self.to_case(CaseType::Snake)),
-            proc_macro2::Span::call_site(),
+            self.span.unwrap_or_else(|| Span::call_site()),
         )
     }
     pub(crate) fn to_prefixed_fct_ident(&self, prefix: &str) -> proc_macro2::Ident {
         proc_macro2::Ident::new(
             &format!("{prefix}_{}", self.to_case(CaseType::Snake)),
-            proc_macro2::Span::call_site(),
+            self.span.unwrap_or_else(|| Span::call_site()),
         )
     }
 }
@@ -182,15 +204,11 @@ impl OperationKind {
             Self::Subscription => "subscription",
         }
     }
-    pub(crate) fn operation_enum_name(self) -> proc_macro2::Ident {
+    pub(crate) fn operation_enum_name(self, span: Span) -> proc_macro2::Ident {
         match self {
-            Self::Query => proc_macro2::Ident::new("QueryField", proc_macro2::Span::call_site()),
-            Self::Mutation => {
-                proc_macro2::Ident::new("MutationField", proc_macro2::Span::call_site())
-            }
-            Self::Subscription => {
-                proc_macro2::Ident::new("SubscriptionField", proc_macro2::Span::call_site())
-            }
+            Self::Query => proc_macro2::Ident::new("QueryField", span),
+            Self::Mutation => proc_macro2::Ident::new("MutationField", span),
+            Self::Subscription => proc_macro2::Ident::new("SubscriptionField", span),
         }
     }
 }

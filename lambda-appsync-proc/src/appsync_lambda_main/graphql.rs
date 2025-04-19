@@ -1,10 +1,18 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap};
 
 use graphql_parser::schema::{Definition, Document, TypeDefinition};
-use proc_macro2::TokenStream;
-use quote::{quote, quote_spanned, ToTokens};
+use proc_macro2::{Span, TokenStream};
+use quote::{quote_spanned, ToTokens};
 
 use crate::common::{CaseType, Name, OperationKind};
+
+thread_local! {
+    static CURRENT_SPAN: RefCell<Span> = RefCell::new(Span::call_site());
+}
+// Get the current span
+fn current_span() -> Span {
+    CURRENT_SPAN.with(|s| *s.borrow())
+}
 
 enum Scalar {
     String,
@@ -49,21 +57,22 @@ impl TryFrom<&str> for Scalar {
 }
 impl ToTokens for Scalar {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let span = current_span();
         tokens.extend(match self {
-            Scalar::String => quote! {String},
-            Scalar::ID => quote! {::lambda_appsync::ID},
-            Scalar::Int => quote! {i32},
-            Scalar::Float => quote! {f64},
-            Scalar::Boolean => quote! {bool},
-            Scalar::AWSEmail => quote! {::lambda_appsync::AWSEmail},
-            Scalar::AWSPhone => quote! {::lambda_appsync::AWSPhone},
-            Scalar::AWSTimestamp => quote! {::lambda_appsync::AWSTimestamp},
-            Scalar::AWSDate => quote! {::lambda_appsync::AWSDate},
-            Scalar::AWSTime => quote! {::lambda_appsync::AWSTime},
-            Scalar::AWSDateTime => quote! {::lambda_appsync::AWSDateTime},
-            Scalar::AWSJSON => quote! {::lambda_appsync::serde_json::Value},
-            Scalar::AWSURL => quote! {::lambda_appsync::AWSUrl},
-            Scalar::AWSIPAddress => quote! {::core::net::IpAddr},
+            Scalar::String => quote_spanned! {span=>String},
+            Scalar::ID => quote_spanned! {span=>::lambda_appsync::ID},
+            Scalar::Int => quote_spanned! {span=>i32},
+            Scalar::Float => quote_spanned! {span=>f64},
+            Scalar::Boolean => quote_spanned! {span=>bool},
+            Scalar::AWSEmail => quote_spanned! {span=>::lambda_appsync::AWSEmail},
+            Scalar::AWSPhone => quote_spanned! {span=>::lambda_appsync::AWSPhone},
+            Scalar::AWSTimestamp => quote_spanned! {span=>::lambda_appsync::AWSTimestamp},
+            Scalar::AWSDate => quote_spanned! {span=>::lambda_appsync::AWSDate},
+            Scalar::AWSTime => quote_spanned! {span=>::lambda_appsync::AWSTime},
+            Scalar::AWSDateTime => quote_spanned! {span=>::lambda_appsync::AWSDateTime},
+            Scalar::AWSJSON => quote_spanned! {span=>::lambda_appsync::serde_json::Value},
+            Scalar::AWSURL => quote_spanned! {span=>::lambda_appsync::AWSUrl},
+            Scalar::AWSIPAddress => quote_spanned! {span=>::core::net::IpAddr},
         })
     }
 }
@@ -80,9 +89,9 @@ impl FieldType {
         if let Ok(scalar) = Scalar::try_from(name.as_str()) {
             Self::Scalar(scalar)
         } else {
-            Self::Custom {
-                name: Name::from(name),
-            }
+            let mut name = Name::from(name);
+            name.set_span(current_span());
+            Self::Custom { name }
         }
     }
     fn is_optionnal(&self) -> bool {
@@ -124,17 +133,18 @@ impl From<graphql_parser::schema::Type<'_, String>> for FieldType {
 }
 impl ToTokens for FieldType {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let span = current_span();
         match self {
             FieldType::Custom { name } => {
                 let name = name.to_type_ident();
-                tokens.extend(quote! {#name})
+                tokens.extend(quote_spanned! {span=>#name})
             }
-            FieldType::Scalar(scalar) => tokens.extend(quote! {#scalar}),
-            FieldType::List(field_type) => tokens.extend(quote! {Vec<#field_type>}),
+            FieldType::Scalar(scalar) => tokens.extend(quote_spanned! {span=>#scalar}),
+            FieldType::List(field_type) => tokens.extend(quote_spanned! {span=>Vec<#field_type>}),
             FieldType::Optionnal(field_type) => {
-                tokens.extend(quote! {::core::option::Option<#field_type>})
+                tokens.extend(quote_spanned! {span=>::core::option::Option<#field_type>})
             }
-            FieldType::Overriden(ty) => tokens.extend(quote! {#ty}),
+            FieldType::Overriden(ty) => tokens.extend(quote_spanned! {span=>#ty}),
         }
     }
 }
@@ -145,14 +155,16 @@ struct Field {
 }
 impl From<graphql_parser::schema::Field<'_, String>> for Field {
     fn from(value: graphql_parser::schema::Field<'_, String>) -> Self {
-        let name = Name::from(value.name);
+        let mut name = Name::from(value.name);
+        name.set_span(current_span());
         let field_type = FieldType::from(value.field_type);
         Self { name, field_type }
     }
 }
 impl From<graphql_parser::schema::InputValue<'_, String>> for Field {
     fn from(value: graphql_parser::schema::InputValue<'_, String>) -> Self {
-        let name = Name::from(value.name);
+        let mut name = Name::from(value.name);
+        name.set_span(current_span());
         let field_type = FieldType::from(value.value_type);
         Self { name, field_type }
     }
@@ -179,27 +191,28 @@ impl ToTokens for FieldContext<'_> {
 
         let field_type = &field.field_type;
         let mut serde_options = vec![];
+        let span = current_span();
         if name != orig_name {
-            serde_options.push(quote! {
+            serde_options.push(quote_spanned! {span=>
                 rename = #orig_name
             });
         }
         if field_type.is_optionnal() {
-            serde_options.push(quote! {
+            serde_options.push(quote_spanned! {span=>
                 default
             });
             if !self.deserialize_only {
-                serde_options.push(quote! {
+                serde_options.push(quote_spanned! {span=>
                     skip_serializing_if = "Option::is_none"
                 });
             }
         }
         if !serde_options.is_empty() {
-            tokens.extend(quote! {
+            tokens.extend(quote_spanned! {span=>
                 #[serde(#(#serde_options),*)]
             })
         }
-        tokens.extend(quote! {
+        tokens.extend(quote_spanned! {span=>
             pub #name: #field_type
         });
     }
@@ -267,7 +280,8 @@ impl Structure {
 }
 impl From<graphql_parser::schema::ObjectType<'_, String>> for Structure {
     fn from(value: graphql_parser::schema::ObjectType<'_, String>) -> Self {
-        let name = Name::from(value.name);
+        let mut name = Name::from(value.name);
+        name.set_span(current_span());
         let fields = value.fields.into_iter().map(Field::from).collect();
         Self {
             name,
@@ -289,17 +303,18 @@ impl From<graphql_parser::schema::InputObjectType<'_, String>> for Structure {
 }
 impl ToTokens for Structure {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let span = current_span();
         let struct_name = self.name.to_type_ident();
         let fields = self
             .fields
             .iter()
             .map(|f| FieldContext::new(f, self.deserialize_only));
         let serde_derive = if self.deserialize_only {
-            quote! {::lambda_appsync::serde::Deserialize}
+            quote_spanned! {span=>::lambda_appsync::serde::Deserialize}
         } else {
-            quote! {::lambda_appsync::serde::Serialize, ::lambda_appsync::serde::Deserialize}
+            quote_spanned! {span=>::lambda_appsync::serde::Serialize, ::lambda_appsync::serde::Deserialize}
         };
-        tokens.extend(quote! {
+        tokens.extend(quote_spanned! {span=>
             #[derive(Debug, Clone, #serde_derive)]
             pub struct #struct_name {
                 #(#fields,)*
@@ -315,8 +330,8 @@ struct Enum {
 }
 impl From<graphql_parser::schema::EnumType<'_, String>> for Enum {
     fn from(value: graphql_parser::schema::EnumType<'_, String>) -> Self {
-        let name = Name::from(value.name);
-
+        let mut name = Name::from(value.name);
+        name.set_span(current_span());
         let variants = value
             .values
             .into_iter()
@@ -336,7 +351,8 @@ impl ToTokens for Enum {
             .map(|n| n.to_type_ident())
             .collect::<Vec<_>>();
         let error_message = format!("`{{}}` is an invalid value for enum {}", enum_name);
-        tokens.extend(quote! {
+        let span = current_span();
+        tokens.extend(quote_spanned! {span=>
             #[derive(Debug, Clone, Copy, ::lambda_appsync::serde::Serialize, ::lambda_appsync::serde::Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
             pub enum #enum_name {
                 #(#[serde(rename = #variant_orig_iter)]#variants,)*
@@ -376,7 +392,8 @@ impl ToTokens for UnusedParam<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = self.0.name.to_unused_param_ident();
         let field_type = &self.0.field_type;
-        tokens.extend(quote! {
+        let span = current_span();
+        tokens.extend(quote_spanned! {span=>
             #name: #field_type
         });
     }
@@ -406,12 +423,13 @@ impl Operation {
     fn default_op(&self, kind: OperationKind) -> proc_macro2::TokenStream {
         let fct_name = self.name.to_prefixed_fct_ident(kind.fct_prefix());
         let params = self.args.iter().map(UnusedParam);
+        let span = current_span();
         let return_type = match kind {
             OperationKind::Query | OperationKind::Mutation => {
                 let return_type = &self.return_type;
-                quote! {#return_type}
+                quote_spanned! {span=>#return_type}
             }
-            OperationKind::Subscription => quote! {
+            OperationKind::Subscription => quote_spanned! {span=>
                 ::core::option::Option<::lambda_appsync::subscription_filters::FilterGroup>
             },
         };
@@ -421,29 +439,30 @@ impl Operation {
                     "{kind} `{}` is unimplemented",
                     self.name.to_case(CaseType::Camel)
                 );
-                quote! {
+                quote_spanned! {span=>
                     ::core::result::Result::Err(::lambda_appsync::AppsyncError::new(
                         "Unimplemented",
                         #unimplemented_message,
                     ))
                 }
             }
-            OperationKind::Subscription => quote! {
+            OperationKind::Subscription => quote_spanned! {span=>
                 ::core::result::Result::Ok(None)
             },
         };
-        quote! {
+        quote_spanned! {span=>
             async fn #fct_name(#(#params,)*) -> ::core::result::Result<#return_type, ::lambda_appsync::AppsyncError> {
                 #default_body
             }
         }
     }
     fn execute_match_arm(&self, kind: OperationKind) -> proc_macro2::TokenStream {
-        let operation_enum_name = kind.operation_enum_name();
+        let span = current_span();
+        let operation_enum_name = kind.operation_enum_name(span);
         let variant = self.name.to_type_ident();
         let fct_name = self.name.to_prefixed_fct_ident(kind.fct_prefix());
         let param_strs = self.args.iter().map(|f| f.name.orig());
-        quote! {
+        quote_spanned! {span=>
             #operation_enum_name::#variant => Operation::#fct_name(
                 #(::lambda_appsync::arg_from_json(&mut args, #param_strs)?,)*
             )
@@ -528,7 +547,6 @@ pub(crate) struct GraphQLSchema {
     subscriptions: Operations,
     structures: Vec<Structure>,
     enums: Vec<Enum>,
-    span: proc_macro2::Span,
 }
 
 impl GraphQLSchema {
@@ -542,6 +560,8 @@ impl GraphQLSchema {
         let mut subscriptions = None;
         let mut structures = vec![];
         let mut enums = vec![];
+
+        CURRENT_SPAN.replace(span);
 
         let sd = if let Some(index) = doc
             .definitions
@@ -638,29 +658,31 @@ impl GraphQLSchema {
             subscriptions: subscriptions.unwrap_or_default(),
             structures,
             enums,
-            span,
         })
     }
     fn enums_to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let enums = self.enums.iter();
-        tokens.extend(quote_spanned! {self.span=>
+        let span = current_span();
+        tokens.extend(quote_spanned! {span=>
             #(#enums)*
         });
     }
     fn structs_to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let structures = self.structures.iter();
-        tokens.extend(quote_spanned! {self.span=>
+        let span = current_span();
+        tokens.extend(quote_spanned! {span=>
             #(#structures)*
         });
     }
     fn operation_to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let query_field_name = OperationKind::Query.operation_enum_name();
+        let span = current_span();
+        let query_field_name = OperationKind::Query.operation_enum_name(span);
         let query_field_variants = self.queries.variants_iter();
-        let mutation_field_name = OperationKind::Mutation.operation_enum_name();
+        let mutation_field_name = OperationKind::Mutation.operation_enum_name(span);
         let mutation_field_variants = self.mutations.variants_iter();
-        let subscription_field_name = OperationKind::Subscription.operation_enum_name();
+        let subscription_field_name = OperationKind::Subscription.operation_enum_name(span);
         let subscription_field_variants = self.subscriptions.variants_iter();
-        tokens.extend(quote_spanned! {self.span=>
+        tokens.extend(quote_spanned! {span=>
             #[derive(Debug, Clone, Copy, ::lambda_appsync::serde::Deserialize)]
             #[serde(rename_all = "camelCase")]
             pub enum #query_field_name {
@@ -691,7 +713,8 @@ impl GraphQLSchema {
         let subscription_field_default_ops = self
             .subscriptions
             .default_op_iter(OperationKind::Subscription);
-        tokens.extend(quote_spanned! {self.span=>
+        let span = current_span();
+        tokens.extend(quote_spanned! {span=>
             #[allow(dead_code)]
             trait DefautOperations {
                 #(#query_field_default_ops)*
@@ -710,7 +733,8 @@ impl GraphQLSchema {
         let subscription_field_execute_match_arm = self
             .subscriptions
             .execute_match_arm_iter(OperationKind::Subscription);
-        tokens.extend(quote_spanned! {self.span=>
+        let span = current_span();
+        tokens.extend(quote_spanned! {span=>
             impl Operation {
                 pub async fn execute(self, args: ::lambda_appsync::serde_json::Value) -> ::lambda_appsync::AppsyncResponse {
                     match self._execute(args).await {
