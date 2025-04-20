@@ -4,7 +4,7 @@
 //! AWS AppSync Direct Lambda resolvers.
 //!
 //! It helps convert GraphQL schemas into type-safe Rust code with full AWS Lambda runtime support.
-//! The main functionality is provided through the `appsync_lambda_main` and `appsync_operation` macros.
+//! The main functionality is provided through the [appsync_lambda_main] and [appsync_operation] macros.
 //!
 //! # Complete Example
 //!
