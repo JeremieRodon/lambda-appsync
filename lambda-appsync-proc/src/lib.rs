@@ -166,7 +166,7 @@ use proc_macro::TokenStream;
 /// ```no_run
 /// use lambda_appsync::{appsync_lambda_main, AppsyncEvent, AppsyncResponse, AppsyncIdentity};
 ///
-/// fn is_authorized(identity: Option<&AppsyncIdentity>) -> bool {
+/// fn is_authorized(identity: &AppsyncIdentity) -> bool {
 ///     todo!()
 /// }
 ///
@@ -177,7 +177,7 @@ use proc_macro::TokenStream;
 ///     event: &lambda_appsync::AppsyncEvent<Operation>
 /// ) -> Option<lambda_appsync::AppsyncResponse> {
 ///     // Verify JWT token, check permissions etc
-///     if !is_authorized(event.identity.as_ref()) {
+///     if !is_authorized(&event.identity) {
 ///         return Some(AppsyncResponse::unauthorized());
 ///     }
 ///     None

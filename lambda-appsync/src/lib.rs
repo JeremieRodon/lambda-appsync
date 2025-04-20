@@ -106,11 +106,11 @@ pub use tokio;
 
 /// Authorization strategy for AppSync operations.
 ///
-/// This enum determines whether operations are allowed or denied based on the
+/// It determines whether operations are allowed or denied based on the
 /// authentication context provided by AWS AppSync. It is typically used by AppSync
-/// itself in conjunction with AWS Cognito user pools or IAM authentication
-/// and usually do not concern the Lambda code.
-#[derive(Debug, Clone, Copy, Deserialize)]
+/// itself in conjunction with AWS Cognito user pools and usually do not concern
+/// the application code.
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum AppsyncAuthStrategy {
     /// Allows the operation by default if no explicit authorizer is associated to the field
@@ -119,14 +119,10 @@ pub enum AppsyncAuthStrategy {
     Deny,
 }
 
-/// Identity information for an authenticated AppSync request.
-///
-/// Contains details about the authenticated user/client making the request,
-/// including their identity attributes from Cognito/IAM, source IP addresses,
-/// group memberships, and any additional claims.
+/// Identity information for Cognito User Pools authenticated requests.
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
-pub struct AppsyncIdentity {
+#[serde(rename_all = "camelCase")]
+pub struct AppsyncIdentityCognito {
     /// Unique identifier of the authenticated user/client
     pub sub: String,
     /// Username of the authenticated user (from Cognito user pools)
@@ -134,15 +130,135 @@ pub struct AppsyncIdentity {
     /// Identity provider that authenticated the request (e.g. Cognito user pool URL)
     pub issuer: String,
     /// Default authorization strategy for the authenticated identity
-    #[serde(rename = "defaultAuthStrategy")]
-    pub auth_strategy: AppsyncAuthStrategy,
+    pub default_auth_strategy: AppsyncAuthStrategy,
     /// Source IP addresses associated with the request
-    #[serde(rename = "sourceIp")]
     pub source_ip: Vec<String>,
     /// Groups the authenticated user belongs to
     pub groups: Option<Vec<String>>,
     /// Additional claims/attributes associated with the identity
     pub claims: Value,
+}
+
+/// Authentication type in a Cognito Identity Pool
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum CognitoIdentityAuthType {
+    /// User is authenticated with an identity provider
+    Authenticated,
+    /// User is an unauthenticated guest
+    Unauthenticated,
+}
+
+/// Cognito Identity Pool information for federated IAM authentication
+#[derive(Debug, Deserialize)]
+pub struct CognitoFederatedIdentity {
+    /// Unique identifier assigned to the authenticated/unauthenticated identity
+    /// within the Cognito Identity Pool
+    #[serde(rename = "cognitoIdentityId")]
+    pub identity_id: String,
+    /// Identifier of the Cognito Identity Pool that is being used for federation.
+    /// In the format of region:pool-id
+    #[serde(rename = "cognitoIdentityPoolId")]
+    pub identity_pool_id: String,
+    /// Indicates whether the identity is authenticated with an identity provider
+    /// or is an unauthenticated guest access
+    #[serde(rename = "cognitoIdentityAuthType")]
+    pub auth_type: CognitoIdentityAuthType,
+    /// For authenticated identities, contains information about the identity provider
+    /// used for authentication. Format varies by provider type
+    #[serde(rename = "cognitoIdentityAuthProvider")]
+    pub auth_provider: String,
+}
+
+/// Identity information for IAM-authenticated requests.
+///
+/// Contains AWS IAM-specific authentication details, including optional Cognito
+/// identity pool information when using federated identities.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppsyncIdentityIam {
+    /// AWS account ID of the caller
+    pub account_id: String,
+    /// Source IP address(es) of the caller
+    pub source_ip: Vec<String>,
+    /// IAM username of the caller
+    pub username: String,
+    /// Full IAM ARN of the caller
+    pub user_arn: String,
+    /// Federated identity information when using Cognito Identity Pools
+    #[serde(flatten)]
+    pub federated_identity: Option<CognitoFederatedIdentity>,
+}
+
+/// Identity information for OIDC-authenticated requests.
+#[derive(Debug, Deserialize)]
+pub struct AppsyncIdentityOidc {
+    /// The issuer of the token
+    pub iss: String,
+    /// The subject (usually the user identifier)
+    pub sub: String,
+    /// Token audience
+    pub aud: String,
+    /// Expiration time
+    pub exp: i64,
+    /// Issued at time
+    pub iat: i64,
+    /// Additional custom claims from the OIDC provider
+    #[serde(flatten)]
+    pub additional_claims: HashMap<String, serde_json::Value>,
+}
+
+/// Identity information for Lambda-authorized requests.
+#[derive(Debug, Deserialize)]
+pub struct AppsyncIdentityLambda {
+    /// Custom resolver context returned by the Lambda authorizer
+    #[serde(rename = "resolverContext")]
+    pub resolver_context: serde_json::Value,
+}
+
+/// Identity information for an AppSync request.
+///
+/// Represents the identity context of the authenticated user/client making the request to
+/// AWS AppSync. This enum corresponds directly to AppSync's authorization types as defined
+/// in the AWS documentation.
+///
+/// Each variant maps to one of the five supported AWS AppSync authorization modes:
+///
+/// - [Cognito](AppsyncIdentity::Cognito): Uses Amazon Cognito User Pools, providing group-based
+///   access control with JWT tokens containing encoded user information like groups and custom claims.
+///
+/// - [Iam](AppsyncIdentity::Iam): Uses AWS IAM roles and policies through AWS Signature Version 4
+///   signing. Can be used either directly with IAM users/roles or through Cognito Identity Pools
+///   for federated access. Enables fine-grained access control through IAM policies.
+///
+/// - [Oidc](AppsyncIdentity::Oidc): OpenID Connect authentication integrating with any
+///   OIDC-compliant provider.
+///
+/// - [Lambda](AppsyncIdentity::Lambda): Custom authorization through an AWS Lambda function
+///   that evaluates each request.
+///
+/// - [ApiKey](AppsyncIdentity::ApiKey): Simple API key-based authentication using keys
+///   generated and managed by AppSync.
+///
+/// The variant is determined by the authorization configuration of your AppSync API and
+/// the authentication credentials provided in the request. Each variant contains structured
+/// information specific to that authentication mode, which can be used in resolvers for
+/// custom authorization logic.
+///
+/// More information can be found in the [AWS documentation](https://docs.aws.amazon.com/appsync/latest/devguide/security-authz.html).
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum AppsyncIdentity {
+    /// Amazon Cognito User Pools authentication
+    Cognito(AppsyncIdentityCognito),
+    /// AWS IAM authentication
+    Iam(AppsyncIdentityIam),
+    /// OpenID Connect authentication
+    Oidc(AppsyncIdentityOidc),
+    /// Lambda authorizer authentication
+    Lambda(AppsyncIdentityLambda),
+    /// API Key authentication (represents null identity in JSON)
+    ApiKey,
 }
 
 /// Metadata about an AppSync GraphQL operation execution.
@@ -179,8 +295,8 @@ pub struct AppsyncEventInfo<O> {
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
 pub struct AppsyncEvent<O> {
-    /// Authentication context if request is authenticated
-    pub identity: Option<AppsyncIdentity>,
+    /// Authentication context
+    pub identity: AppsyncIdentity,
     /// Raw request context from AppSync
     pub request: Value,
     /// Parent field's resolved value in nested resolvers
@@ -451,24 +567,176 @@ mod tests {
     }
 
     #[test]
-    fn test_appsync_identity() {
+    fn test_appsync_identity_cognito() {
         let json = json!({
             "sub": "user123",
             "username": "testuser",
-            "issuer": "https://test",
+            "issuer": "https://cognito-idp.region.amazonaws.com/pool_id",
             "defaultAuthStrategy": "ALLOW",
             "sourceIp": ["1.2.3.4"],
-            "groups": ["group1"],
-            "claims": {"custom": "value"}
+            "groups": ["admin", "users"],
+            "claims": {
+                "email": "user@example.com",
+                "custom:role": "developer"
+            }
         });
 
-        let identity: AppsyncIdentity = serde_json::from_value(json).unwrap();
-        assert_eq!(identity.sub, "user123");
-        assert_eq!(identity.username, "testuser");
-        assert_eq!(identity.issuer, "https://test");
-        assert_eq!(identity.source_ip, vec!["1.2.3.4"]);
-        assert_eq!(identity.groups.unwrap(), vec!["group1"]);
-        assert_eq!(identity.claims, json!({"custom": "value"}));
+        if let AppsyncIdentity::Cognito(cognito) = serde_json::from_value(json).unwrap() {
+            assert_eq!(cognito.sub, "user123");
+            assert_eq!(cognito.username, "testuser");
+            assert_eq!(
+                cognito.issuer,
+                "https://cognito-idp.region.amazonaws.com/pool_id"
+            );
+            assert_eq!(cognito.default_auth_strategy, AppsyncAuthStrategy::Allow);
+            assert_eq!(cognito.source_ip, vec!["1.2.3.4"]);
+            assert_eq!(
+                cognito.groups,
+                Some(vec!["admin".to_string(), "users".to_string()])
+            );
+            assert_eq!(
+                cognito.claims,
+                json!({
+                    "email": "user@example.com",
+                    "custom:role": "developer"
+                })
+            );
+        } else {
+            panic!("Expected Cognito variant");
+        }
+    }
+
+    #[test]
+    fn test_appsync_identity_iam() {
+        let json = json!({
+            "accountId": "123456789012",
+            "sourceIp": ["1.2.3.4"],
+            "username": "IAMUser",
+            "userArn": "arn:aws:iam::123456789012:user/IAMUser"
+        });
+
+        if let AppsyncIdentity::Iam(iam) = serde_json::from_value(json).unwrap() {
+            assert_eq!(iam.account_id, "123456789012");
+            assert_eq!(iam.source_ip, vec!["1.2.3.4"]);
+            assert_eq!(iam.username, "IAMUser");
+            assert_eq!(iam.user_arn, "arn:aws:iam::123456789012:user/IAMUser");
+            assert!(iam.federated_identity.is_none());
+        } else {
+            panic!("Expected IAM variant");
+        }
+    }
+
+    #[test]
+    fn test_appsync_identity_iam_with_cognito() {
+        let json = json!({
+            "accountId": "123456789012",
+            "sourceIp": ["1.2.3.4"],
+            "username": "IAMUser",
+            "userArn": "arn:aws:iam::123456789012:user/IAMUser",
+            "cognitoIdentityId": "region:id",
+            "cognitoIdentityPoolId": "region:pool_id",
+            "cognitoIdentityAuthType": "authenticated",
+            "cognitoIdentityAuthProvider": "cognito-idp.region.amazonaws.com/pool_id"
+        });
+
+        if let AppsyncIdentity::Iam(iam) = serde_json::from_value(json).unwrap() {
+            assert_eq!(iam.account_id, "123456789012");
+            assert_eq!(iam.source_ip, vec!["1.2.3.4"]);
+            assert_eq!(iam.username, "IAMUser");
+            assert_eq!(iam.user_arn, "arn:aws:iam::123456789012:user/IAMUser");
+
+            let federated = iam.federated_identity.unwrap();
+            assert_eq!(federated.identity_id, "region:id");
+            assert_eq!(federated.identity_pool_id, "region:pool_id");
+            assert!(matches!(
+                federated.auth_type,
+                CognitoIdentityAuthType::Authenticated
+            ));
+            assert_eq!(
+                federated.auth_provider,
+                "cognito-idp.region.amazonaws.com/pool_id"
+            );
+        } else {
+            panic!("Expected IAM variant");
+        }
+    }
+
+    #[test]
+    fn test_appsync_identity_oidc() {
+        let json = json!({
+            "iss": "https://auth.example.com",
+            "sub": "user123",
+            "aud": "client123",
+            "exp": 1714521210,
+            "iat": 1714517610,
+            "name": "John Doe",
+            "email": "john@example.com",
+            "roles": ["admin"],
+            "org_id": "org123",
+            "custom_claim": "value"
+        });
+
+        if let AppsyncIdentity::Oidc(oidc) = serde_json::from_value(json).unwrap() {
+            assert_eq!(oidc.iss, "https://auth.example.com");
+            assert_eq!(oidc.sub, "user123");
+            assert_eq!(oidc.aud, "client123");
+            assert_eq!(oidc.exp, 1714521210);
+            assert_eq!(oidc.iat, 1714517610);
+            assert_eq!(oidc.additional_claims.get("name").unwrap(), "John Doe");
+            assert_eq!(
+                oidc.additional_claims.get("email").unwrap(),
+                "john@example.com"
+            );
+            assert_eq!(
+                oidc.additional_claims.get("roles").unwrap(),
+                &json!(["admin"])
+            );
+            assert_eq!(oidc.additional_claims.get("org_id").unwrap(), "org123");
+            assert_eq!(oidc.additional_claims.get("custom_claim").unwrap(), "value");
+        } else {
+            panic!("Expected OIDC variant");
+        }
+    }
+
+    #[test]
+    fn test_appsync_identity_lambda() {
+        let json = json!({
+            "resolverContext": {
+                "userId": "user123",
+                "permissions": ["read", "write"],
+                "metadata": {
+                    "region": "us-west-2",
+                    "environment": "prod"
+                }
+            }
+        });
+
+        if let AppsyncIdentity::Lambda(lambda) = serde_json::from_value(json).unwrap() {
+            assert_eq!(
+                lambda.resolver_context,
+                json!({
+                    "userId": "user123",
+                    "permissions": ["read", "write"],
+                    "metadata": {
+                        "region": "us-west-2",
+                        "environment": "prod"
+                    }
+                })
+            );
+        } else {
+            panic!("Expected Lambda variant");
+        }
+    }
+
+    #[test]
+    fn test_appsync_identity_api_key() {
+        let json = serde_json::Value::Null;
+
+        if let AppsyncIdentity::ApiKey = serde_json::from_value(json).unwrap() {
+            // Test passes if we get the ApiKey variant
+        } else {
+            panic!("Expected ApiKey variant");
+        }
     }
 
     #[test]
