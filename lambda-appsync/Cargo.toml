@@ -26,3 +26,4 @@ serde_json = { workspace = true }
 
 [dev-dependencies]
 aws-sdk-dynamodb = { workspace = true }
+aws-sdk-s3 = { workspace = true }
