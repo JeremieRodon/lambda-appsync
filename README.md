@@ -277,16 +277,15 @@ We welcome contributions! Here's how you can help:
 
 Please review our contributing guidelines before submitting pull requests.
 
-### Development
-
-This project uses git hooks to ensure code quality. The hooks are automatically installed when you enter the development shell using `nix develop` or `direnv allow`.
-
 ### Git Hooks
+
+This project uses git hooks to ensure code quality. The hooks are automatically installed when you enter a development shell using `nix flakes` and `direnv`.
 
 The following checks are run before each commit:
 - Code formatting (cargo fmt)
-- Linting (clippy)
-- Tests
+- Linting (cargo clippy)
+- Doc generation (cargo doc)
+- Tests (cargo test)
 
 If any of these checks fail, the commit will be aborted. Fix the issues and try committing again.
 
@@ -294,6 +293,8 @@ To manually install the hooks:
 ```bash
 ./scripts/install-hooks.sh
 ```
+
+Note: Any changes that have not passed local tests will result in CI failures, as GitHub Actions performs identical verification checks.
 
 ## Issues
 
