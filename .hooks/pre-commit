@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 set -e
 
+# Get list of staged files
+STAGED_FILES=$(git diff --cached --name-only)
+
+# Check if any Rust-related files are staged
+RUST_CHANGES=$(echo "$STAGED_FILES" | grep -E "^(lambda-appsync/|lambda-appsync-proc/|Cargo.toml)" || true)
+
+# If no Rust-related files are changed, exit early
+if [ -z "$RUST_CHANGES" ]; then
+    echo "No Rust-related files changed, skipping checks..."
+    exit 0
+fi
+
 echo "Running pre-commit checks..."
 
 # Check formatting
