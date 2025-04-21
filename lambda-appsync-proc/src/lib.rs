@@ -236,17 +236,21 @@ pub fn appsync_lambda_main(input: TokenStream) -> TokenStream {
 /// # Example Usage
 ///
 /// ```no_run
-/// use lambda_appsync::{appsync_operation, AppsyncError};
 /// # lambda_appsync::appsync_lambda_main!(
 /// #    "schema.graphql",
 /// #     exclude_lambda_handler = true,
 /// # );
+/// # mod sub {
 /// # async fn dynamodb_get_players() -> Result<Vec<Player>, AppsyncError> {
 /// #    todo!()
 /// # }
 /// # async fn dynamodb_create_player(name: String) -> Result<Player, AppsyncError> {
 /// #    todo!()
 /// # }
+/// use lambda_appsync::{appsync_operation, AppsyncError};
+///
+/// // Your types are declared at the crate level by the appsync_lambda_main! macro
+/// use crate::Player;
 ///
 /// // Execute when a 'players' query is received
 /// #[appsync_operation(query(players))]
@@ -260,9 +264,90 @@ pub fn appsync_lambda_main(input: TokenStream) -> TokenStream {
 /// async fn create_player(name: String) -> Result<Player, AppsyncError> {
 ///     Ok(dynamodb_create_player(name).await?)
 /// }
+/// # }
+/// # fn main() {}
+/// ```
 ///
+/// ## Using the AppSync event
+///
+/// You may need to explore the [AppsyncEvent](lambda_appsync::AppsyncEvent) received by the lambda
+/// in your operation handler. You can make it available by adding the `with_appsync_event` flag and
+/// adding a reference to it in your operation handler signature (must be the last argument), like so:
+/// ```no_run
+/// # lambda_appsync::appsync_lambda_main!(
+/// #    "schema.graphql",
+/// #     exclude_lambda_handler = true,
+/// # );
+/// # mod sub {
+/// # async fn dynamodb_create_player(name: String) -> Result<Player, AppsyncError> {
+/// #    todo!()
+/// # }
+/// use lambda_appsync::{appsync_operation, AppsyncError, AppsyncEvent, AppsyncIdentity};
+///
+/// // Your types are declared at the crate level by the appsync_lambda_main! macro
+/// use crate::{Operation, Player};
+///
+/// // Use the AppsyncEvent
+/// #[appsync_operation(mutation(createPlayer), with_appsync_event)]
+/// async fn create_player(name: String, event: &AppsyncEvent<Operation>) -> Result<Player, AppsyncError> {
+///     // Example: extract the cognito user ID
+///     let user_id = if let AppsyncIdentity::Cognito(cognito_id) = &event.identity {
+///         cognito_id.sub.clone()
+///     } else {
+///         return Err(AppsyncError::new("Unauthorized", "Must be Cognito authenticated"))
+///     };
+///     Ok(dynamodb_create_player(name).await?)
+/// }
+/// # }
+/// # fn main() {}
+/// ```
+///
+/// Note that the `args` field of the [AppsyncEvent](lambda_appsync::AppsyncEvent) will always contain
+/// [Null](serde_json::Value::Null) at this stage because its initial content is taken to extract
+/// the argument values for the operation.
+///
+/// ## Preserve original function name
+///
+/// By default the #[[appsync_operation(...)]] macro will discard your function's name but
+/// you can also keep it available by adding the `keep_original_function_name` flag:
+/// ```no_run
+/// # lambda_appsync::appsync_lambda_main!(
+/// #    "schema.graphql",
+/// #     exclude_lambda_handler = true,
+/// # );
+/// # mod sub {
+/// use lambda_appsync::{appsync_operation, AppsyncError};
+///
+/// // Your types are declared at the crate level by the appsync_lambda_main! macro
+/// use crate::Player;
+///
+/// # async fn dynamodb_get_players() -> Result<Vec<Player>, AppsyncError> {
+/// #    todo!()
+/// # }
+/// // Keep the original function name available separately
+/// #[appsync_operation(query(players), keep_original_function_name)]
+/// async fn fetch_players() -> Result<Vec<Player>, AppsyncError> {
+///     Ok(dynamodb_get_players().await?)
+/// }
+/// async fn other_stuff() {
+///     // Can still call fetch_players() directly
+///     fetch_players().await;
+/// }
+/// # }
+/// # fn main() {}
+/// ```
+///
+/// ## Using enhanced subscription filters
+///
+/// ```no_run
+/// # lambda_appsync::appsync_lambda_main!(
+/// #    "schema.graphql",
+/// #     exclude_lambda_handler = true,
+/// # );
 /// // (Optional) Use an enhanced subscription filter for onCreatePlayer
+/// use lambda_appsync::{appsync_operation, AppsyncError};
 /// use lambda_appsync::subscription_filters::{FilterGroup, Filter, FieldPath};
+///
 /// #[appsync_operation(subscription(onCreatePlayer))]
 /// async fn on_create_player(name: String) -> Result<Option<FilterGroup>, AppsyncError> {
 ///     Ok(Some(FilterGroup::from([
@@ -274,14 +359,15 @@ pub fn appsync_lambda_main(input: TokenStream) -> TokenStream {
 /// # fn main() {}
 /// ```
 ///
-/// When using a single [FieldPath](lambda_appsync::subscription_filters::FieldPath) you can turn it directly into a [FilterGroup](lambda_appsync::subscription_filters::FilterGroup)
+/// When using a single [FieldPath](lambda_appsync::subscription_filters::FieldPath) you can turn it directly into a [FilterGroup](lambda_appsync::subscription_filters::FilterGroup).
+/// The following code is equivalent to the one above:
 /// ```no_run
-/// # use lambda_appsync::{appsync_operation, AppsyncError};
 /// # lambda_appsync::appsync_lambda_main!(
 /// #    "schema.graphql",
 /// #     exclude_lambda_handler = true,
 /// # );
-/// use lambda_appsync::subscription_filters::{FilterGroup, Filter, FieldPath};
+/// # use lambda_appsync::{appsync_operation, AppsyncError};
+/// # use lambda_appsync::subscription_filters::{FilterGroup, Filter, FieldPath};
 /// #[appsync_operation(subscription(onCreatePlayer))]
 /// async fn on_create_player(name: String) -> Result<Option<FilterGroup>, AppsyncError> {
 ///     Ok(Some(FieldPath::new("name")?.contains(name).into()))
@@ -289,34 +375,7 @@ pub fn appsync_lambda_main(input: TokenStream) -> TokenStream {
 /// # fn main() {}
 /// ```
 ///
-/// By default the #[appsync_operation(...)] macro will discard your function's name but
-/// you can also keep it available:
-/// ```no_run
-/// use lambda_appsync::{appsync_operation, AppsyncError};
-/// # lambda_appsync::appsync_lambda_main!(
-/// #    "schema.graphql",
-/// #     exclude_lambda_handler = true,
-/// # );
-/// # async fn dynamodb_get_players() -> Result<Vec<Player>, AppsyncError> {
-/// #    todo!()
-/// # }
-/// # async fn dynamodb_create_player(name: String) -> Result<Player, AppsyncError> {
-/// #    todo!()
-/// # }
-/// // Keep the original function name available separately
-/// #[appsync_operation(query(players), keep_original_function_name)]
-/// async fn fetch_players() -> Result<Vec<Player>, AppsyncError> {
-///     // Can still call fetch_players() directly
-///     Ok(dynamodb_get_players().await?)
-/// }
-/// # fn main() {}
-/// ```
-///
-/// The macro will ensure the function signature matches what is defined in the GraphQL schema,
-/// and wire it up to be called when AWS AppSync invokes the Lambda resolver for that operation.
-///
-///
-/// # Important Note
+/// ### Important Note
 ///
 /// When using enhanced subscription filters (i.e., returning a [FilterGroup](lambda_appsync::subscription_filters::FilterGroup)
 /// from Subscribe operation handlers), you need to modify your ***Response*** mapping in AWS AppSync.

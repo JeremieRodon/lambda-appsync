@@ -224,25 +224,14 @@ impl AppsyncLambdaMain {
             quote! {}
         };
         tokens.extend(quote! {
-            async fn appsync_handler(event: ::lambda_appsync::AppsyncEvent<Operation>) -> ::lambda_appsync::AppsyncResponse {
+            async fn appsync_handler(mut event: ::lambda_appsync::AppsyncEvent<Operation>) -> ::lambda_appsync::AppsyncResponse {
                 ::lambda_appsync::log::info!("event={event:?}");
                 ::lambda_appsync::log::info!("operation={:?}", event.info.operation);
 
                 #call_hook
-                let ::lambda_appsync::AppsyncEvent {
-                    identity: _,
-                    request: _,
-                    source: _,
-                    info:
-                        ::lambda_appsync::AppsyncEventInfo {
-                            operation,
-                            selection_set_graphql: _,
-                            selection_set_list: _,
-                            variables: _,
-                        },
-                    args,
-                } = event;
-                operation.execute(args).await
+
+                let args = event.args.take();
+                event.info.operation.execute(args, &event).await
             }
         });
         if self.options.batch {

@@ -446,7 +446,7 @@ impl Operation {
             },
         };
         quote_spanned! {span=>
-            async fn #fct_name(#(#params,)*) -> ::core::result::Result<#return_type, ::lambda_appsync::AppsyncError> {
+            async fn #fct_name(#(#params,)* _event: &::lambda_appsync::AppsyncEvent<Operation>) -> ::core::result::Result<#return_type, ::lambda_appsync::AppsyncError> {
                 #default_body
             }
         }
@@ -460,6 +460,7 @@ impl Operation {
         quote_spanned! {span=>
             #operation_enum_name::#variant => Operation::#fct_name(
                 #(::lambda_appsync::arg_from_json(&mut args, #param_strs)?,)*
+                event
             )
             .await
             .map(::lambda_appsync::res_to_json)
@@ -731,8 +732,11 @@ impl GraphQLSchema {
         let span = current_span();
         tokens.extend(quote_spanned! {span=>
             impl Operation {
-                pub async fn execute(self, args: ::lambda_appsync::serde_json::Value) -> ::lambda_appsync::AppsyncResponse {
-                    match self._execute(args).await {
+                pub async fn execute(self,
+                    args: ::lambda_appsync::serde_json::Value,
+                    event: &::lambda_appsync::AppsyncEvent<Operation>
+                ) -> ::lambda_appsync::AppsyncResponse {
+                    match self._execute(args, event).await {
                         ::core::result::Result::Ok(v) => v.into(),
                         ::core::result::Result::Err(e) => {
                             ::lambda_appsync::log::error!("{e}");
@@ -743,6 +747,7 @@ impl GraphQLSchema {
                 async fn _execute(
                     self,
                     mut args: ::lambda_appsync::serde_json::Value,
+                    event: &::lambda_appsync::AppsyncEvent<Operation>
                 ) -> ::core::result::Result<::lambda_appsync::serde_json::Value, ::lambda_appsync::AppsyncError> {
                     match self {
                         Operation::Query(query_field) => match query_field {

@@ -7,12 +7,14 @@ use crate::common::{Name, OperationKind};
 
 enum ArgsOption {
     KeepOriginalFunctionName,
+    WithAppsyncEvent,
 }
 impl Parse for ArgsOption {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let ident = input.parse::<Ident>()?;
         match ident.to_string().as_str() {
             "keep_original_function_name" => Ok(Self::KeepOriginalFunctionName),
+            "with_appsync_event" => Ok(Self::WithAppsyncEvent),
             _ => Err(syn::Error::new(
                 ident.span(),
                 format!("Unknown option `{ident}`",),
@@ -26,6 +28,7 @@ struct Args {
     op_name: Name,
     op_name_span: proc_macro2::Span,
     keep_original_function_name: bool,
+    with_appsync_event: bool,
 }
 impl Parse for Args {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
@@ -55,6 +58,7 @@ impl Parse for Args {
             op_name,
             op_name_span,
             keep_original_function_name: false,
+            with_appsync_event: false,
         };
 
         while input.peek(Token![,]) {
@@ -66,6 +70,7 @@ impl Parse for Args {
             let option = input.parse::<ArgsOption>()?;
             match option {
                 ArgsOption::KeepOriginalFunctionName => args.keep_original_function_name = true,
+                ArgsOption::WithAppsyncEvent => args.with_appsync_event = true,
             }
         }
         Ok(args)
@@ -186,20 +191,40 @@ impl ToTokens for AppsyncOperation {
         let return_type = &self.fct.return_type;
         let body = &self.fct.body;
 
+        let operation_body = if self.args.keep_original_function_name {
+            &quote! {
+                #fct_name(#(#args,)*).await
+            }
+        } else {
+            &self.fct.body
+        };
+
+        let operation_args = if self.args.with_appsync_event {
+            quote! { #(#args,)* }
+        } else {
+            quote! { #(#args,)* _event: &::lambda_appsync::AppsyncEvent<crate::Operation>}
+        };
+
+        let default_operation_call_args = if self.args.with_appsync_event {
+            quote! { #(#arg_names,)* }
+        } else {
+            quote! { #(#arg_names,)* _event}
+        };
+
         tokens.extend(quote! {
             impl crate::Operation {
                 #vis async fn #op_fct_name(
-                    #(#args,)*
+                    #operation_args
                 ) -> #return_type {
                     // This is just a marker to ensure an error is thrown if the user did not chose
                     // the correct signature for the function. Should be optimized away by the compiler.
                     if false {
                         return <crate::Operation as crate::DefautOperations>::#op_fct_name(
-                            #(#arg_names,)*
+                            #default_operation_call_args
                         )
                         .await;
                     }
-                    #body
+                    #operation_body
                 }
             }
         });
@@ -208,7 +233,7 @@ impl ToTokens for AppsyncOperation {
                 #vis async fn #fct_name(
                     #(#args,)*
                 ) -> #return_type {
-                    crate::Operation::#op_fct_name(#(#arg_names,)*).await
+                    #body
                 }
             });
         }
