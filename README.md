@@ -13,11 +13,13 @@ The lambda-appsync crate provides procedural macros that convert GraphQL schemas
 ## Features
 
 - ✨ Type-safe GraphQL schema conversion to Rust types
+- 🔔 AWS AppSync enhanced subscription filters
 - 🚀 Full AWS Lambda runtime integration
 - 🔒 Built-in validation of resolver function signatures
 - 🔌 Easy AWS SDK client initialization
 - 📦 Performance-optimized batching support
 - 🛡️ Flexible request validation hooks (e.g. for advanced authentication flows)
+- 🔐 Comprehensive support for all AWS AppSync auth types
 
 ## Known limitations
 
@@ -34,13 +36,14 @@ Add this dependency to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lambda-appsync = "0.4.2"
+lambda-appsync = "0.5.0"
 ```
 
 ## Quick Start
 
-1. Create your GraphQL schema file (e.g. `graphql/schema.gql`). When in a workspace context, all relative paths are assumed to be relative to the workspace root directory:
+1. Create your GraphQL schema file (e.g. `graphql/schema.gql`).
 
+Note: When in a workspace context, all relative paths are assumed to be relative to the workspace root directory:
 ```graphql
 type Query {
   players: [Player!]!
@@ -150,6 +153,50 @@ appsync_lambda_main!(
     field_type_override = Player.id: String
 );
 ```
+### Subscription Filters
+
+The framework provides subscription filtering capabilities:
+
+```rust
+use lambda_appsync::{appsync_operation, AppsyncError};
+use lambda_appsync::subscription_filters::{FieldPath, FilterGroup};
+
+#[appsync_operation(subscription(onCreatePlayer))]
+async fn on_create_player(name: String) -> Result<Option<FilterGroup>, AppsyncError> {
+    // Subscribe only to events where player name contains the given string
+    Ok(Some(FieldPath::new("name")?.contains(name).into()))
+}
+```
+
+Important: When using enhanced subscription filters, update your AppSync Response Mapping Template:
+
+```vtl
+#if($context.result.data)
+$extensions.setSubscriptionFilter($context.result.data)
+#end
+null
+```
+
+### Accessing the AppSync Event
+
+Access the full AppSync event context in operation handlers:
+
+```rust
+#[appsync_operation(mutation(createPlayer), with_appsync_event)]
+async fn create_player(
+    name: String,
+    event: &AppsyncEvent<Operation>
+) -> Result<Player, AppsyncError> {
+    // Extract Cognito user ID from event
+    let user_id = if let AppsyncIdentity::Cognito(cognito) = &event.identity {
+        cognito.sub.clone()
+    } else {
+        return Err(AppsyncError::new("Unauthorized", "Must be Cognito authenticated"));
+    };
+    // Other use of the event...
+    todo!()
+}
+```
 
 ### Preserving Original Function Names
 
@@ -186,15 +233,6 @@ appsync_lambda_main!(
 
 This enables defining custom traits and methods on GraphQL types in one place while reusing them across multiple Lambda functions. The shared library contains type definitions, while each Lambda maintains its operation handlers and AWS SDK client initialization.
 
-### Error Handling
-
-Combine multiple errors using the pipe operator:
-
-```rust
-let err = AppsyncError::new("ValidationError", "Invalid email")
-    | AppsyncError::new("DatabaseError", "User not found");
-```
-
 ### AWS SDK Error Support
 
 Seamlessly handle AWS SDK errors with automatic conversion:
@@ -213,6 +251,15 @@ async fn store_item(item: Item, client: &aws_sdk_dynamodb::Client) -> Result<(),
 ```
 
 Error types and messages are extracted from AWS SDK error metadata, allowing use of the `?` operator with AWS SDK calls for properly formatted AppSync response errors.
+
+### Error Merging
+
+Combine multiple errors using the pipe operator:
+
+```rust
+let err = AppsyncError::new("ValidationError", "Invalid email")
+    | AppsyncError::new("DatabaseError", "User not found");
+```
 
 ## Minimum Supported Rust Version (MSRV)
 

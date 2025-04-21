@@ -5,50 +5,79 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## v0.4.2 - 2025-04-19
+## [v0.5.0] - 2025-04-21
 
-- 7a72565 Making clippy happy
+### Added
+- New option to get a reference to the AppsyncEvent structure in operation handlers through the `with_appsync_event` attribute parameter
+- Comprehensive support for all AWS AppSync auth types (API Key, Cognito User Pools, IAM, OpenID Connect, Lambda)
 
+### Changed
+- **Breaking**: Complete rewrite of the `AppsyncIdentity` type to support all AWS AppSync auth modes (previously only supported Cognito)
+- Better error handling for auth types serialization/deserialization
+- Improved documentation links and clarity about workspace-relative paths
 
-## v0.4.1 - 2025-04-19 (unpublished)
+### Fixed
+- Missing documentation links in the crate documentation
 
-- a0b8136 Fix/Improv: Making the test_null_handling integration test actually usefull by introcuding a type with a nullable field in the GraphQL schema
+## [v0.4.2] - 2025-04-19
 
-## v0.4.0 - 2025-04-19 (unpublished)
+### Fixed
+- Clippy warnings and code style improvements
 
-- 4e316a7 Feat: Adding integration tests testing ser/de of the macro-generated strcutures
-- c3424e5 Fix: Making sure Rust keywords are properly escaped when used as field names in the GraphQL schema, e.g. a field named 'type' in the GraphQL schema will become 'r#type' in the Rust structure. Note that crate, self and super are special Rust keywords that cannot be escaped using the 'r#' syntax, instead they will be prefixed with 'r_', e.g. a field named 'crate' will become 'r_crate'
-- 13fff75 Improving span handling of the Name type struct
-- 5616d48 Making it so all the code generated from the GraphQL schema is 'spanned' on the schema file path argument of the macro
-- 53d7c25 Introducing Rust keywords as field names in the example schema, so that the test fails
-- 61d6dfa Fix: Update README referenced crate version
-- 6974e43 Fix (Breaking): Using an i32 for GraphQL scalar  instead of a i64, per GraphQL specification
-- 6ea63ca Fix: Marking the Response Mapping template for enhenced subscription filter codeblock as VTL to prevent Rust to trying to compile it
-- f52b927 Feat: Making the Response Mapping template for enhenced subscription filters more generic
+## [v0.4.1] - 2025-04-19 [YANKED]
 
-## v0.3.0 - 2025-04-04
+### Changed
+- Enhanced test coverage for null handling in GraphQL schema type generation
 
-- 47f17cc Doc/Feat: Again improving documentation examples. They are now all compiled as part of testing
-- 4fd2e7e Doc: Adding precisions on what Response Mapping Template to use in AWS AppSync in order for enhenced subscription filters to work
-- 993e9b1 Feat/BugFix: Adding IFSBValueMarker/IFSValueMarker traits on every lambda_appsync AWS types
-- bfc571c Feat: Improving the documentation, notably adding something concerning Subscription Filters
-- 598db75 Feat: Changing the DefaultOperation generator so that subscriptions now return an optionnal FilterGroup
-- 1a6b1b0 Feat: Adding convenience conversion for FieldFilter -> Filter, Filter -> FilterGroup and FieldFilter -> FilterGroup
-- 3dcef68 Feat: Adding support for AppSync subscription filters in a type-safe maner
-- 8cfd4ba BugFix: Making clippy happy by removing a useless allocation
-- e08daba BugFix: Removed the double log::info! of the Appsync Operation
-- 7cd00bf BugFix: Stopped assuming the case of the GraphQl schema type fields. Feat: Improving the Struct fields code generation so that serde option  is only added for GraphQL  not for  (which is not serializable)
-- b45b6e1 BugFix: Changing AppsyncIdentity structure so users wheel networkmanager docker tss is now an Option<Vec<String>> instead of a Vec<String> as Appsync can pass  values in this field
+## [v0.4.0] - 2025-04-19 [YANKED]
 
-## v0.2.0 - 2025-04-01
+### Added
+- Comprehensive integration tests for macro-generated structure serialization/deserialization
 
-- b147f57 Feat: Improving appsync_lambda_main documentation so that the code is actualy at least compiled. Also reorganizing the workspace dependencies
-- 573717d Feat: Improving appsync_lambda_main documentation
-- 86f1e5b Feat: Adding a unauthorized constructor to the AppsyncResponse struct
-- 06d75a2 Feat: Added several implementation to AWSTimestanp to make it easier to use
-- 1c5a56d Slight docstring example cleanup
+### Changed
+- **Breaking**: Changed GraphQL Int scalar from i64 to i32 to comply with GraphQL specification
+- Improved handling of Rust keywords in GraphQL field names (proper escaping with 'r#' prefix)
 
-## [0.1.0] - 2025-03-30
+### Fixed
+- Proper handling of Rust keywords when used as field names in GraphQL schema
+- Documentation examples and subscription filter code blocks
+- README referenced crate version
+
+## [v0.3.0] - 2025-04-04
+
+### Added
+- Support for AWS AppSync Enhanced Subscription Filters
+- New types for subscription filtering: `FilterGroup`, `Filter`, and `FieldPath`
+- Convenience conversions between filter types
+- Documentation for subscription filters usage and configuration
+
+### Changed
+- **Breaking**: `AppsyncIdentity` structure now has optional groups field for Cognito identity
+- DefaultOperation generator now returns optional FilterGroup for subscriptions
+- Improved documentation with compiled examples
+
+### Fixed
+- Case sensitivity issues with GraphQL schema field names
+- Double logging of AppSync Operations
+- Memory allocation optimization
+- Documentation improvements
+
+## [v0.2.0] - 2025-04-01
+
+### Added
+- New `unauthorized` constructor for AppsyncResponse struct
+- Several convenience implementations for AWSTimestamp:
+  - AddAssign<Duration>
+  - SubAssign<Duration>
+  - Display formatting
+  - PartialEq
+  - into_u64/from_u64 methods
+
+### Changed
+- Improved documentation with compiled examples
+- Reorganized workspace dependencies
+
+## [v0.1.0] - 2025-03-30
 
 ### Added
 - Initial release with core functionality
@@ -62,19 +91,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for custom type overrides
 - Basic examples and documentation
 
-### Changed
-- N/A
-
-### Deprecated
-- N/A
-
-### Removed
-- N/A
-
-### Fixed
-- N/A
-
-### Security
-- N/A
-
-[0.1.0]: https://github.com/JeremieRodon/lambda-appsync/releases/tag/v0.1.0
+[v0.5.0]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.4.2...v0.5.0
+[v0.4.2]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.4.1...v0.4.2
+[v0.4.1]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.4.0...v0.4.1
+[v0.4.0]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.3.0...v0.4.0
+[v0.3.0]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.2.0...v0.3.0
+[v0.2.0]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.1.0...v0.2.0
+[v0.1.0]: https://github.com/JeremieRodon/lambda-appsync/releases/tag/v0.1.0
