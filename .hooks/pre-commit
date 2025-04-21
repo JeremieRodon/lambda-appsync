@@ -11,6 +11,10 @@ cargo fmt --all -- --check
 echo "Running clippy..."
 cargo clippy --all-targets --all-features -- -D warnings
 
+# Check documentation
+echo "Checking documentation..."
+RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps --document-private-items
+
 # Run tests
 echo "Running tests..."
 cargo test --all-features

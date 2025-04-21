@@ -34,6 +34,9 @@ jobs:
       - name: Clippy Check
         run: cargo clippy --all-targets --all-features -- -D warnings
 
+      - name: Doc Check
+        run: RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps --document-private-items
+
       - name: Run Tests
         run: cargo test --all-features
 

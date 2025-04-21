@@ -27,7 +27,7 @@ jobs:
         run: cargo clippy --all-features --all-targets -- -D warnings
 
       - name: Verify Docs
-        run: cargo doc --no-deps
+        run: RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps --document-private-items
 
   publish-proc:
     name: Publish lambda-appsync-proc
