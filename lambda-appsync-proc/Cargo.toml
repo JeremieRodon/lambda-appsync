@@ -6,6 +6,7 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+documentation.workspace = true
 description = "Procedural macros for the lambda-appsync type-safe AWS AppSync resolver framework"
 keywords.workspace = true
 categories.workspace = true
@@ -20,3 +21,7 @@ proc-macro2 = { workspace = true }
 graphql-parser = { workspace = true }
 
 [dev-dependencies]
+lambda-appsync = { path = "../lambda-appsync" }
+aws-sdk-s3 = { workspace = true }
+aws-sdk-dynamodb = { workspace = true }
+serde = { workspace = true }

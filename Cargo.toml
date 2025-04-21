@@ -10,6 +10,7 @@ authors = ["Jérémie RODON <jeremie.rodon@gmail.com>"]
 license = "MIT"
 description = "A type-safe framework for AWS AppSync Direct Lambda resolvers"
 repository = "https://github.com/JeremieRodon/lambda-appsync"
+documentation = "https://docs.rs/lambda-appsync"
 readme = "README.md"
 keywords = ["aws", "appsync", "lambda", "graphql", "serverless"]
 categories = [

@@ -7,6 +7,7 @@ authors.workspace = true
 license.workspace = true
 description.workspace = true
 repository.workspace = true
+documentation.workspace = true
 readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
@@ -26,4 +27,3 @@ serde_json = { workspace = true }
 
 [dev-dependencies]
 aws-sdk-dynamodb = { workspace = true }
-aws-sdk-s3 = { workspace = true }
