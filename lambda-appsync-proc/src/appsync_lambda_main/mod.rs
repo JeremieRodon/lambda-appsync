@@ -166,10 +166,26 @@ struct AppsyncLambdaMain {
 impl Parse for AppsyncLambdaMain {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let graphql_schema_path = input.parse::<LitStr>()?;
-        let schema_str = std::fs::read_to_string(graphql_schema_path.value()).map_err(|e| {
+        let path_value = graphql_schema_path.value();
+        let full_path = if std::path::Path::new(&path_value).is_relative() {
+            std::env::current_dir()
+                .map_err(|e| {
+                    syn::Error::new(
+                        graphql_schema_path.span(),
+                        format!("Could not get current directory: {e}"),
+                    )
+                })?
+                .join(&path_value)
+        } else {
+            std::path::PathBuf::from(path_value)
+        };
+        let schema_str = std::fs::read_to_string(&full_path).map_err(|e| {
             syn::Error::new(
                 graphql_schema_path.span(),
-                format!("Could not open GraphQL schema file ({e})",),
+                format!(
+                    "Could not open GraphQL schema file at '{}' ({e})",
+                    full_path.display()
+                ),
             )
         })?;
         let schema = graphql_parser::parse_schema(&schema_str)
