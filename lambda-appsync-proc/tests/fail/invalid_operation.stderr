@@ -1,0 +1,5 @@
+error[E0576]: cannot find method or associated constant `query_nonexistent` in trait `crate::DefautOperations`
+ --> tests/fail/invalid_operation.rs:5:27
+  |
+5 | #[appsync_operation(query(nonexistent))]
+  |                           ^^^^^^^^^^^ not found in `crate::DefautOperations`

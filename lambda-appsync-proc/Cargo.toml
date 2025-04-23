@@ -25,3 +25,4 @@ lambda-appsync = { path = "../lambda-appsync" }
 aws-sdk-s3 = { workspace = true }
 aws-sdk-dynamodb = { workspace = true }
 serde = { workspace = true }
+trybuild = { workspace = true }

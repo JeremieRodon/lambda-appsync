@@ -47,3 +47,4 @@ graphql-parser = "0.4"
 # Dev dependencies
 aws-sdk-dynamodb = "1"
 aws-sdk-s3 = "1"
+trybuild = "1.0"

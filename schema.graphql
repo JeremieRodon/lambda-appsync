@@ -1,15 +1,20 @@
 type Query {
   players: [Player!]!
   gameStatus: GameStatus!
+  player(id: ID!): Player
 }
 
 type Mutation {
   createPlayer(name: String!): Player!
+  deletePlayer(id: ID!): Player!
+  setGameStatus: GameStatus!
 }
 
 type Subscription {
   onCreatePlayer(name: String!): Player
     @aws_subscribe(mutations: ["createPlayer"])
+  onDeletePlayer(id: ID!): Player @aws_subscribe(mutations: ["deletePlayer"])
+  onGameStatusChange: GameStatus @aws_subscribe(mutations: ["setGameStatus"])
 }
 
 type Player {
@@ -22,6 +27,7 @@ enum Team {
   RUST
   PYTHON
   JS
+  MULTI_WORDS_TEAM
 }
 
 enum GameStatus {

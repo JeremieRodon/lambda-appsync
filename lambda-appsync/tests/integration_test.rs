@@ -41,7 +41,7 @@ fn test_player_deserialization() {
 #[test]
 fn test_team_enum() {
     // Test all variants
-    let teams = vec![Team::Rust, Team::Python, Team::Js];
+    let teams = vec![Team::Rust, Team::Python, Team::Js, Team::MultiWordsTeam];
 
     // Assert the `all()` method
     assert_eq!(teams, Team::all());
