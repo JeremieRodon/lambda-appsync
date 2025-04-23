@@ -251,22 +251,22 @@ pub fn appsync_lambda_main(input: TokenStream) -> TokenStream {
 /// #     exclude_lambda_handler = true,
 /// # );
 /// # mod sub {
-/// # async fn dynamodb_create_player(name: String) -> Result<Player, AppsyncError> {
-/// #    todo!()
-/// # }
 /// use lambda_appsync::{appsync_operation, AppsyncError};
 ///
 /// // Your types are declared at the crate level by the appsync_lambda_main! macro
 /// use crate::Player;
 ///
+/// # async fn dynamodb_get_players() -> Result<Vec<Player>, AppsyncError> {
+/// #    todo!()
+/// # }
 /// // Keep the original function name available separately
-/// #[appsync_operation(mutation(createPlayer), keep_original_function_name)]
-/// async fn create_player(name: String) -> Result<Player, AppsyncError> {
-///     Ok(dynamodb_create_player(name).await?)
+/// #[appsync_operation(query(players), keep_original_function_name)]
+/// async fn fetch_players() -> Result<Vec<Player>, AppsyncError> {
+///     Ok(dynamodb_get_players().await?)
 /// }
-/// async fn player_with_fixed_name() {
-///     // Can still call create_player() directly
-///     create_player("Superman".to_owned()).await;
+/// async fn other_stuff() {
+///     // Can still call fetch_players() directly
+///     fetch_players().await;
 /// }
 /// # }
 /// # fn main() {}
