@@ -1,4 +1,6 @@
-use lambda_appsync::{appsync_lambda_main, appsync_operation, AppsyncError};
+use lambda_appsync::{
+    appsync_lambda_main, appsync_operation, subscription_filters::FilterGroup, AppsyncError,
+};
 
 // Test field type overrides
 appsync_lambda_main!(
@@ -8,15 +10,45 @@ appsync_lambda_main!(
     field_type_override = Player.id: String,
     // Multiple overrides
     field_type_override = Player.team: String,
+    // Return value override
+    field_type_override = Query.gameStatus: String,
+    field_type_override = Mutation.setGameStatus: String,
+    // Argument override
+    field_type_override = Query.player.id: String,
+    field_type_override = Mutation.deletePlayer.id: String,
+    field_type_override = Subscription.onDeletePlayer.id: String,
 );
 
 fn main() {}
 
-#[appsync_operation(mutation(createPlayer))]
-async fn create_player(name: String) -> Result<Player, AppsyncError> {
+// Id is now a string
+#[appsync_operation(query(player))]
+async fn get_player(id: String) -> Result<Option<Player>, AppsyncError> {
+    Ok(Some(Player {
+        id,
+        name: "JohnDoe".to_string(),
+        team: "RUST".to_string(), // Now accepts String directly
+    }))
+}
+
+// Id is now a string
+#[appsync_operation(mutation(deletePlayer))]
+async fn delete_player(id: String) -> Result<Player, AppsyncError> {
     Ok(Player {
-        id: "custom-id".to_string(),
-        name,
+        id,
+        name: "deleted".into(),
         team: "RUST".to_string(), // Now accepts String directly
     })
+}
+
+// Id is now a string
+#[appsync_operation(subscription(onDeletePlayer))]
+async fn on_delete_player(id: String) -> Result<Option<FilterGroup>, AppsyncError> {
+    Ok(None)
+}
+
+// setGameStatus now expects a String
+#[appsync_operation(mutation(setGameStatus))]
+async fn set_game_status() -> Result<String, AppsyncError> {
+    Ok("Started".to_owned())
 }

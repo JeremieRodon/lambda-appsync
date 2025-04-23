@@ -36,6 +36,7 @@ use proc_macro::TokenStream;
 /// - `exclude_appsync_operations = bool`: Skip generation of operation enums
 /// - `only_appsync_operations = bool`: Only generate operation enums
 /// - `field_type_override = Type.field: CustomType`: Override type of a specific field
+/// - `field_type_override = Type.field.arg: CustomType`: Override type of a field argument
 ///
 /// # AWS SDK Clients
 ///
@@ -123,13 +124,23 @@ use proc_macro::TokenStream;
 /// );
 /// ```
 ///
-/// Override field types (you can use this option multiple times):
+/// Override field types, operation return type or argument types:
 /// ```no_run
 /// use lambda_appsync::appsync_lambda_main;
 /// appsync_lambda_main!(
 ///     "schema.graphql",
 ///     // Use String instead of the default lambda_appsync::ID
+///     // Override Player.id to use String instead of ID
 ///     field_type_override = Player.id: String,
+///     // Multiple overrides, here changing another `Player` field type
+///     field_type_override = Player.team: String,
+///     // Return value override
+///     field_type_override = Query.gameStatus: String,
+///     field_type_override = Mutation.setGameStatus: String,
+///     // Argument override
+///     field_type_override = Query.player.id: String,
+///     field_type_override = Mutation.deletePlayer.id: String,
+///     field_type_override = Subscription.onDeletePlayer.id: String,
 /// );
 /// ```
 ///

@@ -216,25 +216,33 @@ impl ToTokens for FieldContext<'_> {
 }
 
 pub(crate) struct FieldTypeOverride {
-    structure_name: syn::Ident,
+    type_name: syn::Ident,
     field_name: syn::Ident,
+    param_name: Option<syn::Ident>,
     type_ident: syn::Type,
 }
 impl FieldTypeOverride {
     pub(crate) fn structure_name(&self) -> String {
-        self.structure_name.to_string()
+        self.type_name.to_string()
     }
     fn _parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let structure_name = input.parse()?;
+        let type_name = input.parse()?;
         _ = input.parse::<syn::Token![.]>()?;
         let field_name = input.parse()?;
+        let param_name = if input.peek(syn::Token![.]) {
+            _ = input.parse::<syn::Token![.]>()?;
+            Some(input.parse()?)
+        } else {
+            None
+        };
         _ = input.parse::<syn::Token![:]>()?;
         let type_ident = input
             .parse()
             .map_err(|e| syn::Error::new(e.span(), "Expected a Type (struct, enum, etc...)"))?;
         Ok(Self {
-            structure_name,
+            type_name,
             field_name,
+            param_name,
             type_ident,
         })
     }
@@ -262,7 +270,7 @@ struct Structure {
 }
 impl Structure {
     fn apply_override(&mut self, fto: FieldTypeOverride) -> Result<(), syn::Error> {
-        assert_eq!(self.name.orig(), fto.structure_name.to_string());
+        assert_eq!(self.name.orig(), fto.type_name.to_string());
         for field in self.fields.iter_mut() {
             if fto.field_name == field.name.orig() {
                 field.field_type.override_type(fto.type_ident);
@@ -271,7 +279,7 @@ impl Structure {
         }
         Err(syn::Error::new(
             fto.field_name.span(),
-            format!("No field `{}` in `{}`", fto.field_name, fto.structure_name),
+            format!("No field `{}` in `{}`", fto.field_name, fto.type_name),
         ))
     }
 }
@@ -466,6 +474,26 @@ impl Operation {
             .map(::lambda_appsync::res_to_json)
         }
     }
+    fn apply_override(&mut self, fto: FieldTypeOverride) -> Result<(), syn::Error> {
+        if let Some(param_name) = fto.param_name {
+            for field in self.args.iter_mut() {
+                if param_name == field.name.orig() {
+                    field.field_type.override_type(fto.type_ident);
+                    return Ok(());
+                }
+            }
+            Err(syn::Error::new(
+                param_name.span(),
+                format!(
+                    "No argument `{}` in operation `{}::{}`",
+                    param_name, fto.type_name, fto.field_name
+                ),
+            ))
+        } else {
+            self.return_type.override_type(fto.type_ident);
+            Ok(())
+        }
+    }
 }
 
 #[derive(Default)]
@@ -490,6 +518,18 @@ impl Operations {
         kind: OperationKind,
     ) -> impl Iterator<Item = proc_macro2::TokenStream> + '_ {
         self.0.iter().map(move |op| op.execute_match_arm(kind))
+    }
+    fn apply_override(&mut self, fto: FieldTypeOverride) -> Result<(), syn::Error> {
+        for op in self.0.iter_mut() {
+            if fto.field_name == op.name.orig() {
+                op.apply_override(fto)?;
+                return Ok(());
+            }
+        }
+        Err(syn::Error::new(
+            fto.field_name.span(),
+            format!("No operation `{}` in `{}`", fto.field_name, fto.type_name),
+        ))
     }
 }
 
@@ -578,15 +618,22 @@ impl GraphQLSchema {
                     match type_definition {
                         TypeDefinition::Object(object_type) => {
                             if let Some(sdt) = sd.schema_definition(&object_type.name) {
+                                let vfto = ftos.remove(&object_type.name);
+                                let mut ops = Operations::from(object_type);
+                                if let Some(vfto) = vfto {
+                                    for fto in vfto {
+                                        ops.apply_override(fto)?;
+                                    }
+                                }
                                 match sdt {
                                     OperationKind::Query => {
-                                        queries.replace(Operations::from(object_type));
+                                        queries.replace(ops);
                                     }
                                     OperationKind::Mutation => {
-                                        mutations.replace(Operations::from(object_type));
+                                        mutations.replace(ops);
                                     }
                                     OperationKind::Subscription => {
-                                        subscriptions.replace(Operations::from(object_type));
+                                        subscriptions.replace(ops);
                                     }
                                 }
                             } else {
@@ -636,8 +683,8 @@ impl GraphQLSchema {
                 .flat_map(|v| {
                     v.into_iter().map(|fto| {
                         syn::Error::new(
-                            fto.structure_name.span(),
-                            format!("No type or input named `{}`", fto.structure_name),
+                            fto.type_name.span(),
+                            format!("No type or input named `{}`", fto.type_name),
                         )
                     })
                 })
