@@ -22,7 +22,7 @@ git stash push -q --include-untracked --keep-index
 (
     # Check formatting only on staged Rust files
     echo "Checking formatting..."
-    echo "$RUST_CHANGES" | xargs cargo fmt --check --
+    cargo fmt --check
 
     # Run clippy
     echo "Running clippy..."
