@@ -193,7 +193,7 @@ impl ToTokens for AppsyncOperation {
 
         let operation_body = if self.args.keep_original_function_name {
             &quote! {
-                #fct_name(#(#args,)*).await
+                #fct_name(#(#arg_names,)*).await
             }
         } else {
             &self.fct.body
