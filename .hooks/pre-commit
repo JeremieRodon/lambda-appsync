@@ -13,22 +13,42 @@ if [ -z "$RUST_CHANGES" ]; then
     exit 0
 fi
 
-echo "Running pre-commit checks..."
+echo "Running pre-commit checks on staged files..."
 
-# Check formatting
-echo "Checking formatting..."
-cargo fmt --all -- --check
+# Ensure working directory is clean for checks
+git stash push -q --include-untracked --keep-index
 
-# Run clippy
-echo "Running clippy..."
-cargo clippy --all-targets --all-features -- -D warnings
+# Run checks in a subshell to ensure we always restore the working tree
+(
+    # Check formatting only on staged Rust files
+    echo "Checking formatting..."
+    echo "$RUST_CHANGES" | xargs cargo fmt --check --
 
-# Check documentation
-echo "Checking documentation..."
-RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps --document-private-items
+    # Run clippy
+    echo "Running clippy..."
+    cargo clippy --all-targets --all-features -- -D warnings
 
-# Run tests
-echo "Running tests..."
-cargo test --all-features
+    # Check documentation for modified files
+    echo "Checking documentation..."
+    RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps --document-private-items
 
-echo "All pre-commit checks passed!"
+    # Run tests that could be affected by the changes
+    echo "Running tests..."
+    cargo test --all-features
+)
+CHECK_STATUS=$?
+
+# Restore working tree state
+if git stash list | grep -q "stash@{0}"; then
+    echo "Restoring working tree state..."
+    git stash pop -q
+fi
+
+# Exit with the status from our checks
+if [ $CHECK_STATUS -eq 0 ]; then
+    echo "All pre-commit checks passed!"
+    exit 0
+else
+    echo "Pre-commit checks failed!"
+    exit 1
+fi
