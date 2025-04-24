@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use graphql_parser::schema::{Definition, Document, TypeDefinition};
 use proc_macro2::{Span, TokenStream};
 use quote::{quote_spanned, ToTokens};
+use syn::ext::IdentExt;
 
 use crate::common::{CaseType, Name, OperationKind};
 
@@ -232,12 +233,12 @@ impl TypeOverride {
         self.arg_name.as_ref().map(|arg_name| arg_name.to_string())
     }
     fn _parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let type_name = input.parse()?;
+        let type_name = input.call(syn::Ident::parse_any)?;
         _ = input.parse::<syn::Token![.]>()?;
-        let field_name = input.parse()?;
+        let field_name = input.call(syn::Ident::parse_any)?;
         let arg_name = if input.peek(syn::Token![.]) {
             _ = input.parse::<syn::Token![.]>()?;
-            Some(input.parse()?)
+            Some(input.call(syn::Ident::parse_any)?)
         } else {
             None
         };
