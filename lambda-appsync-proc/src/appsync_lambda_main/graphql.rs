@@ -5,7 +5,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::{quote_spanned, ToTokens};
 use syn::ext::IdentExt;
 
-use crate::common::{CaseType, Name, OperationKind};
+use crate::common::{Name, OperationKind};
 
 thread_local! {
     static CURRENT_SPAN: RefCell<Span> = RefCell::new(Span::call_site());
@@ -466,10 +466,8 @@ impl Operation {
         };
         let default_body = match kind {
             OperationKind::Query | OperationKind::Mutation => {
-                let unimplemented_message = format!(
-                    "{kind} `{}` is unimplemented",
-                    self.name.to_case(CaseType::Camel)
-                );
+                let unimplemented_message =
+                    format!("{kind} `{}` is unimplemented", self.name.orig());
                 quote_spanned! {span=>
                     ::core::result::Result::Err(::lambda_appsync::AppsyncError::new(
                         "Unimplemented",
