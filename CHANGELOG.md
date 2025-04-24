@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.5.4] - 2025-04-24
+
+### Fixed
+- Bug where the `type_override` option was not working correctly for fields or arguments that were Rust keywords
+
 ## [v0.5.3] - 2025-04-24
 
 ### Changed
@@ -117,7 +122,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for custom type overrides
 - Basic examples and documentation
 
-
+[v0.5.4]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.5.3...v0.5.4
 [v0.5.3]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.5.2...v0.5.3
 [v0.5.2]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.5.1...v0.5.2
 [v0.5.1]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.5.0...v0.5.1
