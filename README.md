@@ -27,8 +27,9 @@ The framework currently has limited support for certain AWS AppSync and GraphQL 
 
 - GraphQL unions are not supported and will be ignored by the macro
 - GraphQL interfaces are not directly supported, though concrete types that implement interfaces will work correctly
+- Arguments in fields of non-operation types (i.e. NOT Query, Mutation or Subscription) are ignored by the macro
 
-We actively track user needs around these features. If your project requires union or interface support, please open a GitHub issue detailing your use case and expected implementation. Your feedback helps us prioritize future development work and determine the best way to implement these features in a type-safe manner.
+We actively track user needs around these features. If your project requires union or interface support, or you have ideas on how the macro could use field arguments for regular types, please open a GitHub issue detailing your use case and expected implementation. Your feedback helps us prioritize future development work and determine the best way to implement these features in a type-safe manner.
 
 ## Installation
 
