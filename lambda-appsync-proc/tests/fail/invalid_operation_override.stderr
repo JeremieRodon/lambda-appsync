@@ -1,5 +1,5 @@
 error: No operation `invalidMutation` in `Mutation`
- --> tests/fail/invalid_operation_override.rs:6:36
+ --> tests/fail/invalid_operation_override.rs:6:30
   |
-6 |     field_type_override = Mutation.invalidMutation: String,
-  |                                    ^^^^^^^^^^^^^^^
+6 |     type_override = Mutation.invalidMutation: String,
+  |                              ^^^^^^^^^^^^^^^

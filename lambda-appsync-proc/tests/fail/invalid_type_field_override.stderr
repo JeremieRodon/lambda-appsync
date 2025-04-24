@@ -1,5 +1,5 @@
 error[E0412]: cannot find type `NonExistentType` in this scope
- --> tests/fail/invalid_type_field_override.rs:7:38
+ --> tests/fail/invalid_type_field_override.rs:7:32
   |
-7 |     field_type_override = Player.id: NonExistentType,
-  |                                      ^^^^^^^^^^^^^^^ not found in this scope
+7 |     type_override = Player.id: NonExistentType,
+  |                                ^^^^^^^^^^^^^^^ not found in this scope

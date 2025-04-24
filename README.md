@@ -150,7 +150,7 @@ Override generated Rust types for specific GraphQL fields:
 appsync_lambda_main!(
     "graphql/schema.gql",
     // Override Player.id type to be String instead of ID on the Rust struct
-    field_type_override = Player.id: String
+    type_override = Player.id: String
 );
 ```
 ### Subscription Filters

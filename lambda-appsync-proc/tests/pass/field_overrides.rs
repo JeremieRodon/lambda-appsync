@@ -7,16 +7,16 @@ appsync_lambda_main!(
     "../../../../schema.graphql",
     exclude_lambda_handler = true,
     // Override Player.id to use String instead of ID
-    field_type_override = Player.id: String,
+    type_override = Player.id: String,
     // Multiple overrides
-    field_type_override = Player.team: String,
+    type_override = Player.team: String,
     // Return value override
-    field_type_override = Query.gameStatus: String,
-    field_type_override = Mutation.setGameStatus: String,
+    type_override = Query.gameStatus: String,
+    type_override = Mutation.setGameStatus: String,
     // Argument override
-    field_type_override = Query.player.id: String,
-    field_type_override = Mutation.deletePlayer.id: String,
-    field_type_override = Subscription.onDeletePlayer.id: String,
+    type_override = Query.player.id: String,
+    type_override = Mutation.deletePlayer.id: String,
+    type_override = Subscription.onDeletePlayer.id: String,
 );
 
 fn main() {}

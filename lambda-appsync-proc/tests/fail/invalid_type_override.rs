@@ -4,7 +4,7 @@ appsync_lambda_main!(
     "../../../../schema.graphql",
     exclude_lambda_handler = true,
     // Non-existent overrides
-    field_type_override = InvalidType.id: String,
+    type_override = InvalidType.id: String,
 );
 
 fn main() {}

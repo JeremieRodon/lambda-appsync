@@ -1,8 +1,8 @@
 error[E0412]: cannot find type `InvalidStatus` in this scope
- --> tests/fail/invalid_type_operation_override.rs:7:45
+ --> tests/fail/invalid_type_operation_override.rs:7:39
   |
-7 |     field_type_override = Query.gameStatus: InvalidStatus,
-  |                                             ^^^^^^^^^^^^^ not found in this scope
+7 |     type_override = Query.gameStatus: InvalidStatus,
+  |                                       ^^^^^^^^^^^^^ not found in this scope
   |
 help: you might be missing a type parameter
   |

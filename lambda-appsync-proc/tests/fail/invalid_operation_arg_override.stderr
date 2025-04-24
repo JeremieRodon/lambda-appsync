@@ -1,5 +1,5 @@
 error: No argument `invalidArg` in operation `Query::player`
- --> tests/fail/invalid_operation_arg_override.rs:7:40
+ --> tests/fail/invalid_operation_arg_override.rs:7:34
   |
-7 |     field_type_override = Query.player.invalidArg: String,
-  |                                        ^^^^^^^^^^
+7 |     type_override = Query.player.invalidArg: String,
+  |                                  ^^^^^^^^^^

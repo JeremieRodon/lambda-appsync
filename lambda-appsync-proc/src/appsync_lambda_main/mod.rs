@@ -91,6 +91,7 @@ impl Parse for OptionalParameter {
             )),
             "hook" => Ok(Self::Hook(input.parse()?)),
             "field_type_override" => Ok(Self::FieldTypeOverride(input.parse()?)),
+            "type_override" => Ok(Self::FieldTypeOverride(input.parse()?)),
             _ => Err(syn::Error::new(
                 ident.span(),
                 format!("Unknown parameter `{ident}`",),

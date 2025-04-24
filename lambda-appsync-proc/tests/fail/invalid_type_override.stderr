@@ -1,5 +1,5 @@
 error: No type or input named `InvalidType`
- --> tests/fail/invalid_type_override.rs:7:27
+ --> tests/fail/invalid_type_override.rs:7:21
   |
-7 |     field_type_override = InvalidType.id: String,
-  |                           ^^^^^^^^^^^
+7 |     type_override = InvalidType.id: String,
+  |                     ^^^^^^^^^^^
