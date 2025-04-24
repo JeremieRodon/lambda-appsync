@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap};
+use std::cell::RefCell;
 
 use graphql_parser::schema::{Definition, Document, TypeDefinition};
 use proc_macro2::{Span, TokenStream};
@@ -215,21 +215,27 @@ impl ToTokens for FieldContext<'_> {
     }
 }
 
-pub(crate) struct FieldTypeOverride {
+pub(crate) struct TypeOverride {
     type_name: syn::Ident,
     field_name: syn::Ident,
-    param_name: Option<syn::Ident>,
+    arg_name: Option<syn::Ident>,
     type_ident: syn::Type,
 }
-impl FieldTypeOverride {
-    pub(crate) fn structure_name(&self) -> String {
+impl TypeOverride {
+    pub(crate) fn type_name(&self) -> String {
         self.type_name.to_string()
+    }
+    pub(crate) fn field_name(&self) -> String {
+        self.field_name.to_string()
+    }
+    pub(crate) fn arg_name(&self) -> Option<String> {
+        self.arg_name.as_ref().map(|arg_name| arg_name.to_string())
     }
     fn _parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let type_name = input.parse()?;
         _ = input.parse::<syn::Token![.]>()?;
         let field_name = input.parse()?;
-        let param_name = if input.peek(syn::Token![.]) {
+        let arg_name = if input.peek(syn::Token![.]) {
             _ = input.parse::<syn::Token![.]>()?;
             Some(input.parse()?)
         } else {
@@ -242,12 +248,12 @@ impl FieldTypeOverride {
         Ok(Self {
             type_name,
             field_name,
-            param_name,
+            arg_name,
             type_ident,
         })
     }
 }
-impl syn::parse::Parse for FieldTypeOverride {
+impl syn::parse::Parse for TypeOverride {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let begin = input.cursor();
         Self::_parse(input).map_err(|e: syn::Error| {
@@ -269,18 +275,51 @@ struct Structure {
     deserialize_only: bool,
 }
 impl Structure {
-    fn apply_override(&mut self, fto: FieldTypeOverride) -> Result<(), syn::Error> {
-        assert_eq!(self.name.orig(), fto.type_name.to_string());
+    fn apply_field_overrides(
+        &mut self,
+        mut field_overrides: super::FieldOverrides,
+    ) -> Result<(), syn::Error> {
+        let mut errors = vec![];
         for field in self.fields.iter_mut() {
-            if fto.field_name == field.name.orig() {
-                field.field_type.override_type(fto.type_ident);
-                return Ok(());
+            let field_name = field.name.orig();
+            if let Some((field_override, args_override)) = field_overrides.remove(field_name) {
+                if !args_override.is_empty() {
+                    errors.extend(args_override.into_values().flat_map(|to| {
+                        syn::Error::new(
+                            to.arg_name.expect("always set in args_override").span(),
+                            "Using args overrides is only suported on operations",
+                        )
+                    }));
+                }
+                if let Some(field_override) = field_override {
+                    field.field_type.override_type(field_override.type_ident);
+                }
             }
         }
-        Err(syn::Error::new(
-            fto.field_name.span(),
-            format!("No field `{}` in `{}`", fto.field_name, fto.type_name),
-        ))
+        if !field_overrides.is_empty() {
+            errors.extend(
+                field_overrides
+                    .into_values()
+                    .flat_map(|fo| fo.0.into_iter().chain(fo.1.into_values()))
+                    .map(|to| {
+                        syn::Error::new(
+                            to.field_name.span(),
+                            format!("No field `{}` in `{}`", to.field_name, to.type_name),
+                        )
+                    }),
+            );
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors
+                .into_iter()
+                .reduce(|mut acc, e| {
+                    acc.combine(e);
+                    acc
+                })
+                .expect("not empty"))
+        }
     }
 }
 impl From<graphql_parser::schema::ObjectType<'_, String>> for Structure {
@@ -407,18 +446,6 @@ struct Operation {
     args: Vec<Field>,
     return_type: FieldType,
 }
-impl From<graphql_parser::schema::Field<'_, String>> for Operation {
-    fn from(value: graphql_parser::schema::Field<'_, String>) -> Self {
-        let name = Name::from(value.name);
-        let args = value.arguments.into_iter().map(Field::from).collect();
-        let return_type = FieldType::from(value.field_type);
-        Self {
-            name,
-            args,
-            return_type,
-        }
-    }
-}
 impl Operation {
     fn variant(&self) -> proc_macro2::Ident {
         self.name.to_type_ident()
@@ -474,24 +501,55 @@ impl Operation {
             .map(::lambda_appsync::res_to_json)
         }
     }
-    fn apply_override(&mut self, fto: FieldTypeOverride) -> Result<(), syn::Error> {
-        if let Some(param_name) = fto.param_name {
-            for field in self.args.iter_mut() {
-                if param_name == field.name.orig() {
-                    field.field_type.override_type(fto.type_ident);
-                    return Ok(());
-                }
+    fn apply_field_override(
+        &mut self,
+        (field_type_override, mut arg_type_overrides): super::FieldOverride,
+    ) -> Result<(), syn::Error> {
+        let mut errors = vec![];
+        if let Some(field_type_override) = field_type_override {
+            self.return_type
+                .override_type(field_type_override.type_ident);
+        }
+        for arg in self.args.iter_mut() {
+            let arg_name = arg.name.orig();
+            if let Some(arg_type_override) = arg_type_overrides.remove(arg_name) {
+                arg.field_type.override_type(arg_type_override.type_ident);
             }
-            Err(syn::Error::new(
-                param_name.span(),
-                format!(
-                    "No argument `{}` in operation `{}::{}`",
-                    param_name, fto.type_name, fto.field_name
-                ),
-            ))
-        } else {
-            self.return_type.override_type(fto.type_ident);
+        }
+        if !arg_type_overrides.is_empty() {
+            errors.extend(arg_type_overrides.into_values().map(|to| {
+                let arg_name = to.arg_name.expect("always set in arg_type_overrides");
+                syn::Error::new(
+                    arg_name.span(),
+                    format!(
+                        "No argument `{}` in operation `{}::{}`",
+                        arg_name, to.type_name, to.field_name,
+                    ),
+                )
+            }));
+        }
+        if errors.is_empty() {
             Ok(())
+        } else {
+            Err(errors
+                .into_iter()
+                .reduce(|mut acc, e| {
+                    acc.combine(e);
+                    acc
+                })
+                .expect("not empty"))
+        }
+    }
+}
+impl From<graphql_parser::schema::Field<'_, String>> for Operation {
+    fn from(value: graphql_parser::schema::Field<'_, String>) -> Self {
+        let name = Name::from(value.name);
+        let args = value.arguments.into_iter().map(Field::from).collect();
+        let return_type = FieldType::from(value.field_type);
+        Self {
+            name,
+            args,
+            return_type,
         }
     }
 }
@@ -519,17 +577,44 @@ impl Operations {
     ) -> impl Iterator<Item = proc_macro2::TokenStream> + '_ {
         self.0.iter().map(move |op| op.execute_match_arm(kind))
     }
-    fn apply_override(&mut self, fto: FieldTypeOverride) -> Result<(), syn::Error> {
+    fn apply_field_overrides(
+        &mut self,
+        mut field_overrides: super::FieldOverrides,
+    ) -> Result<(), syn::Error> {
+        let mut errors = vec![];
         for op in self.0.iter_mut() {
-            if fto.field_name == op.name.orig() {
-                op.apply_override(fto)?;
-                return Ok(());
+            let op_name = op.name.orig();
+            if let Some(field_override) = field_overrides.remove(op_name) {
+                match op.apply_field_override(field_override) {
+                    Ok(_) => (),
+                    Err(e) => errors.push(e),
+                };
             }
         }
-        Err(syn::Error::new(
-            fto.field_name.span(),
-            format!("No operation `{}` in `{}`", fto.field_name, fto.type_name),
-        ))
+        if !field_overrides.is_empty() {
+            errors.extend(
+                field_overrides
+                    .into_values()
+                    .flat_map(|fo| fo.0.into_iter().chain(fo.1.into_values()))
+                    .map(|to| {
+                        syn::Error::new(
+                            to.field_name.span(),
+                            format!("No operation `{}` in `{}`", to.field_name, to.type_name),
+                        )
+                    }),
+            );
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors
+                .into_iter()
+                .reduce(|mut acc, e| {
+                    acc.combine(e);
+                    acc
+                })
+                .expect("not empty"))
+        }
     }
 }
 
@@ -589,7 +674,7 @@ impl GraphQLSchema {
     pub(crate) fn new(
         mut doc: Document<'_, String>,
         span: proc_macro2::Span,
-        mut ftos: HashMap<String, Vec<FieldTypeOverride>>,
+        mut tos: super::TypeOverrides,
     ) -> Result<Self, syn::Error> {
         let mut queries = None;
         let mut mutations = None;
@@ -612,18 +697,20 @@ impl GraphQLSchema {
             SchemaDefinition::default()
         };
 
+        let mut errors = vec![];
         for def in doc.definitions {
             match def {
                 Definition::TypeDefinition(type_definition) => {
                     match type_definition {
                         TypeDefinition::Object(object_type) => {
                             if let Some(sdt) = sd.schema_definition(&object_type.name) {
-                                let vfto = ftos.remove(&object_type.name);
+                                let field_overrides = tos.remove(&object_type.name);
                                 let mut ops = Operations::from(object_type);
-                                if let Some(vfto) = vfto {
-                                    for fto in vfto {
-                                        ops.apply_override(fto)?;
-                                    }
+                                if let Some(field_overrides) = field_overrides {
+                                    match ops.apply_field_overrides(field_overrides) {
+                                        Ok(_) => (),
+                                        Err(e) => errors.push(e),
+                                    };
                                 }
                                 match sdt {
                                     OperationKind::Query => {
@@ -638,10 +725,11 @@ impl GraphQLSchema {
                                 }
                             } else {
                                 let mut structure = Structure::from(object_type);
-                                if let Some(vfto) = ftos.remove(structure.name.orig()) {
-                                    for fto in vfto {
-                                        structure.apply_override(fto)?;
-                                    }
+                                if let Some(field_overrides) = tos.remove(structure.name.orig()) {
+                                    match structure.apply_field_overrides(field_overrides) {
+                                        Ok(_) => (),
+                                        Err(e) => errors.push(e),
+                                    };
                                 }
                                 structures.push(structure);
                             }
@@ -651,10 +739,11 @@ impl GraphQLSchema {
                         }
                         TypeDefinition::InputObject(input_object_type) => {
                             let mut structure = Structure::from(input_object_type);
-                            if let Some(vfto) = ftos.remove(structure.name.orig()) {
-                                for fto in vfto {
-                                    structure.apply_override(fto)?;
-                                }
+                            if let Some(field_overrides) = tos.remove(structure.name.orig()) {
+                                match structure.apply_field_overrides(field_overrides) {
+                                    Ok(_) => (),
+                                    Err(e) => errors.push(e),
+                                };
                             }
                             structures.push(structure);
                         }
@@ -677,31 +766,36 @@ impl GraphQLSchema {
             }
         }
 
-        if !ftos.is_empty() {
-            return Err(ftos
-                .into_values()
-                .flat_map(|v| {
-                    v.into_iter().map(|fto| {
+        if !tos.is_empty() {
+            errors.extend(
+                tos.into_values()
+                    .flat_map(|fos| fos.into_values())
+                    .flat_map(|fo| fo.0.into_iter().chain(fo.1.into_values()))
+                    .map(|to| {
                         syn::Error::new(
-                            fto.type_name.span(),
-                            format!("No type or input named `{}`", fto.type_name),
+                            to.type_name.span(),
+                            format!("No type or input named `{}`", to.type_name),
                         )
-                    })
-                })
+                    }),
+            );
+        }
+        if errors.is_empty() {
+            Ok(Self {
+                queries: queries.unwrap_or_default(),
+                mutations: mutations.unwrap_or_default(),
+                subscriptions: subscriptions.unwrap_or_default(),
+                structures,
+                enums,
+            })
+        } else {
+            Err(errors
+                .into_iter()
                 .reduce(|mut acc, e| {
                     acc.combine(e);
                     acc
                 })
-                .unwrap());
+                .expect("not empty"))
         }
-
-        Ok(Self {
-            queries: queries.unwrap_or_default(),
-            mutations: mutations.unwrap_or_default(),
-            subscriptions: subscriptions.unwrap_or_default(),
-            structures,
-            enums,
-        })
     }
     fn enums_to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let enums = self.enums.iter();

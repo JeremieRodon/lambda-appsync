@@ -2,7 +2,7 @@ mod graphql;
 
 use std::collections::HashMap;
 
-use graphql::{FieldTypeOverride, GraphQLSchema};
+use graphql::{GraphQLSchema, TypeOverride};
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, TokenStream as TokenStream2};
 use quote::{format_ident, quote, quote_spanned, ToTokens};
@@ -67,7 +67,7 @@ enum OptionalParameter {
     ExcludeAppsyncOperations(bool),
     OnlyAppsyncOperations(bool),
     Hook(Ident),
-    FieldTypeOverride(FieldTypeOverride),
+    TypeOverride(TypeOverride),
 }
 impl Parse for OptionalParameter {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
@@ -90,8 +90,8 @@ impl Parse for OptionalParameter {
                 input.parse::<LitBool>()?.value(),
             )),
             "hook" => Ok(Self::Hook(input.parse()?)),
-            "field_type_override" => Ok(Self::FieldTypeOverride(input.parse()?)),
-            "type_override" => Ok(Self::FieldTypeOverride(input.parse()?)),
+            "field_type_override" => Ok(Self::TypeOverride(input.parse()?)),
+            "type_override" => Ok(Self::TypeOverride(input.parse()?)),
             _ => Err(syn::Error::new(
                 ident.span(),
                 format!("Unknown parameter `{ident}`",),
@@ -100,13 +100,22 @@ impl Parse for OptionalParameter {
     }
 }
 
+type TypeOverrides = HashMap<TypeName, FieldOverrides>;
+type TypeName = String;
+type FieldOverrides = HashMap<FieldName, FieldOverride>;
+type FieldOverride = (FieldTypeOverride, ArgTypeOverrides);
+type FieldName = String;
+type FieldTypeOverride = Option<TypeOverride>;
+type ArgName = String;
+type ArgTypeOverrides = HashMap<ArgName, TypeOverride>;
+
 struct OptionalParameters {
     batch: bool,
     appsync_types: bool,
     appsync_operations: bool,
     lambda_handler: bool,
     hook: Option<Ident>,
-    ftos: HashMap<String, Vec<FieldTypeOverride>>,
+    tos: TypeOverrides,
 }
 impl Default for OptionalParameters {
     fn default() -> Self {
@@ -116,7 +125,7 @@ impl Default for OptionalParameters {
             appsync_operations: true,
             lambda_handler: true,
             hook: None,
-            ftos: HashMap::new(),
+            tos: HashMap::new(),
         }
     }
 }
@@ -145,8 +154,23 @@ impl OptionalParameters {
             OptionalParameter::Hook(ident) => {
                 self.hook.replace(ident);
             }
-            OptionalParameter::FieldTypeOverride(fto) => {
-                self.ftos.entry(fto.structure_name()).or_default().push(fto);
+            OptionalParameter::TypeOverride(to) => {
+                // Retrieve the entry corresponding to `Type.field`
+                let to_field_entry = self
+                    .tos
+                    .entry(to.type_name())
+                    .or_default()
+                    .entry(to.field_name())
+                    .or_default();
+                if let Some(arg_name) = to.arg_name() {
+                    // There is a `.param`
+                    // This is a parameter override
+                    to_field_entry.1.insert(arg_name, to);
+                } else {
+                    // no `.param`
+                    // This is just a field override
+                    to_field_entry.0.replace(to);
+                }
             }
             OptionalParameter::ExcludeLambdaHandler(_) => (),
             OptionalParameter::OnlyLambdaHandler(_) => (),
@@ -216,10 +240,11 @@ impl Parse for AppsyncLambdaMain {
             }
         }
 
-        let ftos = options.ftos;
-        options.ftos = HashMap::new();
-
-        let graphql_schema = GraphQLSchema::new(schema, graphql_schema_path.span(), ftos)?;
+        let graphql_schema = GraphQLSchema::new(
+            schema,
+            graphql_schema_path.span(),
+            std::mem::take(&mut options.tos),
+        )?;
 
         Ok(Self {
             graphql_schema,
