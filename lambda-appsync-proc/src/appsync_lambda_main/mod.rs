@@ -1,8 +1,10 @@
 mod graphql;
 mod overrides;
 
+use std::collections::HashMap;
+
 use graphql::GraphQLSchema;
-use overrides::{TypeOverride, TypeOverrides};
+use overrides::{NameOverride, TypeOverride};
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, TokenStream as TokenStream2};
 use quote::{format_ident, quote, quote_spanned, ToTokens};
@@ -68,6 +70,7 @@ enum OptionalParameter {
     OnlyAppsyncOperations(bool),
     Hook(Ident),
     TypeOverride(TypeOverride),
+    NameOverride(NameOverride),
 }
 impl Parse for OptionalParameter {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
@@ -90,8 +93,11 @@ impl Parse for OptionalParameter {
                 input.parse::<LitBool>()?.value(),
             )),
             "hook" => Ok(Self::Hook(input.parse()?)),
-            "field_type_override" => Ok(Self::TypeOverride(input.parse()?)),
             "type_override" => Ok(Self::TypeOverride(input.parse()?)),
+            "name_override" => Ok(Self::NameOverride(input.parse()?)),
+            // Deprecated options
+            "field_type_override" => Ok(Self::TypeOverride(input.parse()?)),
+            // Unknown option
             _ => Err(syn::Error::new(
                 ident.span(),
                 format!("Unknown parameter `{ident}`",),
@@ -100,6 +106,41 @@ impl Parse for OptionalParameter {
     }
 }
 
+// Captures type_override = Type.field: CustomType and Type.field.param: CustomType options
+// using a HashMap hierarchy of TypeName -> FieldName -> (Optional field override, Map of arg overrides)
+// Top level mapping from GraphQL type names to their field overrides
+type TypeOverrides = HashMap<TypeName, FieldTypeOverrides>;
+
+// For each type, maps field names to their overrides
+type FieldTypeOverrides = HashMap<FieldName, FieldTypeOverride>;
+
+// A field can have both a direct type override and argument type overrides
+// - First element: Optional field type override (Type.field: CustomType)
+// - Second element: Map of argument overrides (Type.field.arg: CustomType)
+type FieldTypeOverride = (Option<TypeOverride>, ArgTypeOverrides);
+
+// Maps argument names to their type overrides for a field
+type ArgTypeOverrides = HashMap<ArgName, TypeOverride>;
+
+// Captures name_override = Type: CustomName and Type.field: custom_name options
+// using a HashMap hierarchy of TypeName -> (Optional type override, Map of field overrides)
+// This works the same for name_override = Enum: CustomEnumName and Enum.VARIANT: CustomVariant
+// Top level mapping from GraphQL type names to their field overrides
+type NameOverrides = HashMap<TypeName, TypeNameOverride>;
+
+// A type can have both a direct name override and field name overrides
+// - First element: Optional type name override (Type: CustomName)
+// - Second element: Map of field overrides (Type.field: custom_name)
+type TypeNameOverride = (Option<NameOverride>, FieldNameOverrides);
+
+// Maps field names to their name overrides for a field
+type FieldNameOverrides = HashMap<FieldName, NameOverride>;
+
+// [Type|Field|Arg]Name are just String
+type TypeName = String;
+type FieldName = String;
+type ArgName = String;
+
 struct OptionalParameters {
     batch: bool,
     appsync_types: bool,
@@ -107,7 +148,7 @@ struct OptionalParameters {
     lambda_handler: bool,
     hook: Option<Ident>,
     tos: TypeOverrides,
-    // nos: NameOverrides,
+    nos: NameOverrides,
 }
 impl Default for OptionalParameters {
     fn default() -> Self {
@@ -118,7 +159,7 @@ impl Default for OptionalParameters {
             lambda_handler: true,
             hook: None,
             tos: TypeOverrides::new(),
-            // nos: NameOverrides::new(),
+            nos: NameOverrides::new(),
         }
     }
 }
@@ -151,18 +192,31 @@ impl OptionalParameters {
                 // Retrieve the entry corresponding to `Type.field`
                 let to_field_entry = self
                     .tos
-                    .entry(to.type_name())
+                    .entry(to.type_name().to_string())
                     .or_default()
-                    .entry(to.field_name())
+                    .entry(to.field_name().to_string())
                     .or_default();
                 if let Some(arg_name) = to.arg_name() {
                     // There is a `.param`
                     // This is a parameter override
-                    to_field_entry.1.insert(arg_name, to);
+                    to_field_entry.1.insert(arg_name.to_string(), to);
                 } else {
                     // no `.param`
                     // This is just a field override
                     to_field_entry.0.replace(to);
+                }
+            }
+            OptionalParameter::NameOverride(no) => {
+                // Retrieve the entry corresponding to `Type`
+                let no_type_entry = self.nos.entry(no.type_name().to_string()).or_default();
+                if let Some(field_name) = no.field_name() {
+                    // There is a `.field`
+                    // This is a field override
+                    no_type_entry.1.insert(field_name.to_string(), no);
+                } else {
+                    // no `.field`
+                    // This is just a type override
+                    no_type_entry.0.replace(no);
                 }
             }
             OptionalParameter::ExcludeLambdaHandler(_) => (),
@@ -237,6 +291,7 @@ impl Parse for AppsyncLambdaMain {
             schema,
             graphql_schema_path.span(),
             std::mem::take(&mut options.tos),
+            std::mem::take(&mut options.nos),
         )?;
 
         Ok(Self {

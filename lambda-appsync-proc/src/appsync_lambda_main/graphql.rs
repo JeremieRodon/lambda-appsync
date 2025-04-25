@@ -6,7 +6,7 @@ use quote::{quote_spanned, ToTokens};
 
 use crate::common::{Name, OperationKind};
 
-use super::overrides::FieldOverrides;
+use super::TypeOverride;
 
 thread_local! {
     static CURRENT_SPAN: RefCell<Span> = RefCell::new(Span::call_site());
@@ -98,13 +98,13 @@ impl FieldType {
     fn is_optionnal(&self) -> bool {
         matches!(self, FieldType::Optionnal(_))
     }
-    fn override_type(&mut self, ty: syn::Type) {
+    fn override_type(&mut self, type_override: TypeOverride) {
         match self {
             FieldType::Overriden(_) | FieldType::Custom { .. } | FieldType::Scalar(_) => {
-                *self = FieldType::Overriden(ty)
+                *self = FieldType::Overriden(type_override.type_ident())
             }
-            FieldType::List(field_type) => field_type.override_type(ty),
-            FieldType::Optionnal(field_type) => field_type.override_type(ty),
+            FieldType::List(field_type) => field_type.override_type(type_override),
+            FieldType::Optionnal(field_type) => field_type.override_type(type_override),
         }
     }
 }
@@ -223,39 +223,79 @@ struct Structure {
     deserialize_only: bool,
 }
 impl Structure {
-    fn apply_field_overrides(
+    fn apply_type_overrides(
         &mut self,
-        mut field_overrides: FieldOverrides,
+        mut type_overrides: super::FieldTypeOverrides,
     ) -> Result<(), syn::Error> {
         let mut errors = vec![];
         for field in self.fields.iter_mut() {
             let field_name = field.name.orig();
-            if let Some((field_override, args_override)) = field_overrides.remove(field_name) {
+            if let Some((field_override, args_override)) = type_overrides.remove(field_name) {
                 if !args_override.is_empty() {
                     errors.extend(args_override.into_values().flat_map(|to| {
                         syn::Error::new(
-                            to.arg_name.expect("always set in args_override").span(),
+                            to.arg_name().expect("always set in args_override").span(),
                             "Using args overrides is only supported on operations",
                         )
                     }));
                 }
                 if let Some(field_override) = field_override {
-                    field.field_type.override_type(field_override.type_ident);
+                    field.field_type.override_type(field_override);
                 }
             }
         }
-        if !field_overrides.is_empty() {
+        if !type_overrides.is_empty() {
             errors.extend(
-                field_overrides
+                type_overrides
                     .into_values()
-                    .flat_map(|fo| fo.0.into_iter().chain(fo.1.into_values()))
+                    .flat_map(|to| to.0.into_iter().chain(to.1.into_values()))
                     .map(|to| {
                         syn::Error::new(
-                            to.field_name.span(),
-                            format!("No field `{}` in `{}`", to.field_name, to.type_name),
+                            to.field_name().span(),
+                            format!("No field `{}` in `{}`", to.field_name(), to.type_name()),
                         )
                     }),
             );
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors
+                .into_iter()
+                .reduce(|mut acc, e| {
+                    acc.combine(e);
+                    acc
+                })
+                .expect("not empty"))
+        }
+    }
+    fn apply_name_overrides(
+        &mut self,
+        (type_override, mut field_overrides): super::TypeNameOverride,
+    ) -> Result<(), syn::Error> {
+        let mut errors = vec![];
+        if let Some(type_override) = type_override {
+            self.name.override_name(type_override.new_name());
+        }
+        for field in self.fields.iter_mut() {
+            let field_name = field.name.orig();
+            if let Some(field_override) = field_overrides.remove(field_name) {
+                field.name.override_name(field_override.new_name());
+            }
+        }
+        if !field_overrides.is_empty() {
+            errors.extend(field_overrides.into_values().map(|no| {
+                syn::Error::new(
+                    no.field_name()
+                        .expect("always set in field_overrides")
+                        .span(),
+                    format!(
+                        "No field `{}` in `{}`",
+                        no.field_name().expect("always set in field_overrides"),
+                        no.type_name()
+                    ),
+                )
+            }));
         }
         if errors.is_empty() {
             Ok(())
@@ -318,6 +358,48 @@ impl ToTokens for Structure {
 struct Enum {
     name: Name,
     variants: Vec<Name>,
+}
+impl Enum {
+    fn apply_name_overrides(
+        &mut self,
+        (type_override, mut field_overrides): super::TypeNameOverride,
+    ) -> Result<(), syn::Error> {
+        let mut errors = vec![];
+        if let Some(type_override) = type_override {
+            self.name.override_name(type_override.new_name());
+        }
+        for variant in self.variants.iter_mut() {
+            let variant_name = variant.orig();
+            if let Some(field_override) = field_overrides.remove(variant_name) {
+                variant.override_name(field_override.new_name());
+            }
+        }
+        if !field_overrides.is_empty() {
+            errors.extend(field_overrides.into_values().map(|no| {
+                syn::Error::new(
+                    no.field_name()
+                        .expect("always set in field_overrides")
+                        .span(),
+                    format!(
+                        "No variant `{}` in `{}`",
+                        no.field_name().expect("always set in field_overrides"),
+                        no.type_name()
+                    ),
+                )
+            }));
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors
+                .into_iter()
+                .reduce(|mut acc, e| {
+                    acc.combine(e);
+                    acc
+                })
+                .expect("not empty"))
+        }
+    }
 }
 impl From<graphql_parser::schema::EnumType<'_, String>> for Enum {
     fn from(value: graphql_parser::schema::EnumType<'_, String>) -> Self {
@@ -447,29 +529,31 @@ impl Operation {
             .map(::lambda_appsync::res_to_json)
         }
     }
-    fn apply_field_override(
+    fn apply_type_overrides(
         &mut self,
-        (field_type_override, mut arg_type_overrides): super::overrides::FieldOverride,
+        (field_type_override, mut arg_type_overrides): super::FieldTypeOverride,
     ) -> Result<(), syn::Error> {
         let mut errors = vec![];
         if let Some(field_type_override) = field_type_override {
-            self.return_type
-                .override_type(field_type_override.type_ident);
+            self.return_type.override_type(field_type_override);
         }
         for arg in self.args.iter_mut() {
             let arg_name = arg.name.orig();
             if let Some(arg_type_override) = arg_type_overrides.remove(arg_name) {
-                arg.field_type.override_type(arg_type_override.type_ident);
+                arg.field_type.override_type(arg_type_override);
             }
         }
         if !arg_type_overrides.is_empty() {
             errors.extend(arg_type_overrides.into_values().map(|to| {
-                let arg_name = to.arg_name.expect("always set in arg_type_overrides");
                 syn::Error::new(
-                    arg_name.span(),
+                    to.arg_name()
+                        .expect("always set in arg_type_overrides")
+                        .span(),
                     format!(
                         "No argument `{}` in operation `{}::{}`",
-                        arg_name, to.type_name, to.field_name,
+                        to.arg_name().expect("always set in arg_type_overrides"),
+                        to.type_name(),
+                        to.field_name(),
                     ),
                 )
             }));
@@ -523,29 +607,29 @@ impl Operations {
     ) -> impl Iterator<Item = proc_macro2::TokenStream> + '_ {
         self.0.iter().map(move |op| op.execute_match_arm(kind))
     }
-    fn apply_field_overrides(
+    fn apply_type_overrides(
         &mut self,
-        mut field_overrides: super::overrides::FieldOverrides,
+        mut type_overrides: super::FieldTypeOverrides,
     ) -> Result<(), syn::Error> {
         let mut errors = vec![];
         for op in self.0.iter_mut() {
             let op_name = op.name.orig();
-            if let Some(field_override) = field_overrides.remove(op_name) {
-                match op.apply_field_override(field_override) {
+            if let Some(type_override) = type_overrides.remove(op_name) {
+                match op.apply_type_overrides(type_override) {
                     Ok(_) => (),
                     Err(e) => errors.push(e),
                 };
             }
         }
-        if !field_overrides.is_empty() {
+        if !type_overrides.is_empty() {
             errors.extend(
-                field_overrides
+                type_overrides
                     .into_values()
                     .flat_map(|fo| fo.0.into_iter().chain(fo.1.into_values()))
                     .map(|to| {
                         syn::Error::new(
-                            to.field_name.span(),
-                            format!("No operation `{}` in `{}`", to.field_name, to.type_name),
+                            to.field_name().span(),
+                            format!("No operation `{}` in `{}`", to.field_name(), to.type_name()),
                         )
                     }),
             );
@@ -621,6 +705,7 @@ impl GraphQLSchema {
         mut doc: Document<'_, String>,
         span: proc_macro2::Span,
         mut tos: super::TypeOverrides,
+        mut nos: super::NameOverrides,
     ) -> Result<Self, syn::Error> {
         let mut queries = None;
         let mut mutations = None;
@@ -650,10 +735,10 @@ impl GraphQLSchema {
                     match type_definition {
                         TypeDefinition::Object(object_type) => {
                             if let Some(sdt) = sd.schema_definition(&object_type.name) {
-                                let field_overrides = tos.remove(&object_type.name);
+                                let type_overrides = tos.remove(&object_type.name);
                                 let mut ops = Operations::from(object_type);
-                                if let Some(field_overrides) = field_overrides {
-                                    match ops.apply_field_overrides(field_overrides) {
+                                if let Some(type_overrides) = type_overrides {
+                                    match ops.apply_type_overrides(type_overrides) {
                                         Ok(_) => (),
                                         Err(e) => errors.push(e),
                                     };
@@ -671,8 +756,14 @@ impl GraphQLSchema {
                                 }
                             } else {
                                 let mut structure = Structure::from(object_type);
-                                if let Some(field_overrides) = tos.remove(structure.name.orig()) {
-                                    match structure.apply_field_overrides(field_overrides) {
+                                if let Some(type_overrides) = tos.remove(structure.name.orig()) {
+                                    match structure.apply_type_overrides(type_overrides) {
+                                        Ok(_) => (),
+                                        Err(e) => errors.push(e),
+                                    };
+                                }
+                                if let Some(name_overrides) = nos.remove(structure.name.orig()) {
+                                    match structure.apply_name_overrides(name_overrides) {
                                         Ok(_) => (),
                                         Err(e) => errors.push(e),
                                     };
@@ -681,12 +772,25 @@ impl GraphQLSchema {
                             }
                         }
                         TypeDefinition::Enum(enum_type) => {
-                            enums.push(Enum::from(enum_type));
+                            let mut r_enum = Enum::from(enum_type);
+                            if let Some(name_overrides) = nos.remove(r_enum.name.orig()) {
+                                match r_enum.apply_name_overrides(name_overrides) {
+                                    Ok(_) => (),
+                                    Err(e) => errors.push(e),
+                                };
+                            }
+                            enums.push(r_enum);
                         }
                         TypeDefinition::InputObject(input_object_type) => {
                             let mut structure = Structure::from(input_object_type);
-                            if let Some(field_overrides) = tos.remove(structure.name.orig()) {
-                                match structure.apply_field_overrides(field_overrides) {
+                            if let Some(type_overrides) = tos.remove(structure.name.orig()) {
+                                match structure.apply_type_overrides(type_overrides) {
+                                    Ok(_) => (),
+                                    Err(e) => errors.push(e),
+                                };
+                            }
+                            if let Some(name_overrides) = nos.remove(structure.name.orig()) {
+                                match structure.apply_name_overrides(name_overrides) {
                                     Ok(_) => (),
                                     Err(e) => errors.push(e),
                                 };
@@ -719,8 +823,20 @@ impl GraphQLSchema {
                     .flat_map(|fo| fo.0.into_iter().chain(fo.1.into_values()))
                     .map(|to| {
                         syn::Error::new(
-                            to.type_name.span(),
-                            format!("No type or input named `{}`", to.type_name),
+                            to.type_name().span(),
+                            format!("No type or input named `{}`", to.type_name()),
+                        )
+                    }),
+            );
+        }
+        if !nos.is_empty() {
+            errors.extend(
+                nos.into_values()
+                    .flat_map(|no| no.0.into_iter().chain(no.1.into_values()))
+                    .map(|no| {
+                        syn::Error::new(
+                            no.type_name().span(),
+                            format!("No type, enum or input named `{}`", no.type_name()),
                         )
                     }),
             );

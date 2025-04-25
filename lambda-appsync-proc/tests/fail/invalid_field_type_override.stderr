@@ -1,5 +1,5 @@
 error: No field `inexistant` in `Player`
- --> tests/fail/invalid_field_override.rs:7:28
+ --> tests/fail/invalid_field_type_override.rs:7:28
   |
 7 |     type_override = Player.inexistant: String,
   |                            ^^^^^^^^^^

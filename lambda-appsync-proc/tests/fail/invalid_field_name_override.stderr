@@ -1,0 +1,5 @@
+error: No field `inexistant` in `Player`
+ --> tests/fail/invalid_field_name_override.rs:7:28
+  |
+7 |     name_override = Player.inexistant: existant,
+  |                            ^^^^^^^^^^

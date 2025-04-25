@@ -65,6 +65,7 @@ pub(crate) struct Name {
     orig: String,
     span: Span,
     words: Vec<Word>,
+    name_override: Option<String>,
 }
 impl From<String> for Name {
     fn from(value: String) -> Self {
@@ -72,92 +73,84 @@ impl From<String> for Name {
     }
 }
 impl From<(String, Span)> for Name {
-    fn from((value, span): (String, Span)) -> Self {
-        match CaseType::case(value.as_str()) {
+    fn from((orig, span): (String, Span)) -> Self {
+        let mut words = vec![];
+        match CaseType::case(orig.as_str()) {
             CaseType::Camel => {
-                let mut words = vec![];
                 let mut slice_start = 0;
-                for (i, c) in value.chars().enumerate() {
+                for (i, c) in orig.chars().enumerate() {
                     if c.is_uppercase() {
-                        words.push(Word(value[slice_start..i].to_lowercase()));
+                        words.push(Word(orig[slice_start..i].to_lowercase()));
                         slice_start = i;
                     }
                 }
-                words.push(Word(value[slice_start..].to_lowercase()));
-                Name {
-                    orig: value,
-                    span,
-                    words,
-                }
+                words.push(Word(orig[slice_start..].to_lowercase()));
             }
             CaseType::Pascal => {
-                let mut words = vec![];
                 let mut slice_start = 0;
-                for (i, c) in value.chars().enumerate() {
+                for (i, c) in orig.chars().enumerate() {
                     if c.is_uppercase() && i != 0 {
-                        words.push(Word(value[slice_start..i].to_lowercase()));
+                        words.push(Word(orig[slice_start..i].to_lowercase()));
                         slice_start = i;
                     }
                 }
-                words.push(Word(value[slice_start..].to_lowercase()));
-                Name {
-                    orig: value,
-                    span,
-                    words,
-                }
+                words.push(Word(orig[slice_start..].to_lowercase()));
             }
             CaseType::Snake => {
-                let words = value.split('_').map(|w| Word(w.to_owned())).collect();
-                Name {
-                    orig: value,
-                    span,
-                    words,
-                }
+                words.extend(orig.split('_').map(|w| Word(w.to_owned())));
             }
             CaseType::Upper => {
-                let words = value.split('_').map(|w| Word(w.to_lowercase())).collect();
-                Name {
-                    orig: value,
-                    span,
-                    words,
-                }
+                words.extend(orig.split('_').map(|w| Word(w.to_lowercase())));
             }
+        };
+        Name {
+            orig,
+            span,
+            words,
+            name_override: None,
         }
     }
 }
 impl Name {
+    pub(crate) fn override_name(&mut self, name: String) {
+        self.name_override.replace(name);
+    }
     pub(crate) fn orig(&self) -> &str {
         &self.orig
     }
     // pub(crate) fn set_span(&mut self, span: Span) {
     //     self.span = Some(span);
     // }
-    pub(crate) fn to_case(&self, case: CaseType) -> String {
-        match case {
-            CaseType::Camel => {
-                let mut word_iter = self.words.iter();
-                let first = word_iter.next().expect("non empty name");
-                format!(
-                    "{first}{}",
-                    word_iter
-                        .map(|w| w.capitalize())
-                        .collect::<Vec<_>>()
-                        .join("")
-                )
+    fn to_case(&self, case: CaseType) -> String {
+        if let Some(ref name_override) = self.name_override {
+            name_override.clone()
+        } else {
+            match case {
+                CaseType::Camel => {
+                    let mut word_iter = self.words.iter();
+                    let first = word_iter.next().expect("non empty name");
+                    format!(
+                        "{first}{}",
+                        word_iter
+                            .map(|w| w.capitalize())
+                            .collect::<Vec<_>>()
+                            .join("")
+                    )
+                }
+                CaseType::Pascal => self
+                    .words
+                    .iter()
+                    .map(|w| w.capitalize())
+                    .collect::<Vec<_>>()
+                    .join(""),
+                CaseType::Snake => self.words.join("_"),
+                CaseType::Upper => self
+                    .words
+                    .iter()
+                    .map(|w| w.to_uppercase())
+                    .collect::<Vec<_>>()
+                    .join("_"),
             }
-            CaseType::Pascal => self
-                .words
-                .iter()
-                .map(|w| w.capitalize())
-                .collect::<Vec<_>>()
-                .join(""),
-            CaseType::Snake => self.words.join("_"),
-            CaseType::Upper => self
-                .words
-                .iter()
-                .map(|w| w.to_uppercase())
-                .collect::<Vec<_>>()
-                .join("_"),
         }
     }
     pub(crate) fn to_type_ident(&self) -> proc_macro2::Ident {

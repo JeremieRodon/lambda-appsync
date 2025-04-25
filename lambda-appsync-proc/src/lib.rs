@@ -35,9 +35,31 @@ use proc_macro::TokenStream;
 /// - `only_appsync_types = bool`: Only generate GraphQL type definitions
 /// - `exclude_appsync_operations = bool`: Skip generation of operation enums
 /// - `only_appsync_operations = bool`: Only generate operation enums
-/// - `type_override = Type.field: CustomType`: Override type of a specific field
-/// - `type_override = Type.field.arg: CustomType`: Override type of a field argument
+/// - `type_override` - see section below for details
+/// - `name_override` - see section below for details
 /// - `field_type_override` (Deprecated): Same as `type_override`
+///
+/// ## Type Overrides
+///
+/// The `type_override` option allows overriding Rust types affected to various schema elements:
+///
+/// - GraphQL `type` and `input` Field types: `type_override = Type.field: CustomType`
+/// - Operation return types (Query/Mutation): `type_override = OpType.operation: CustomType`
+/// - Operation arguments (Query/Mutation/Subscription): `type_override = OpType.operation.arg: CustomType`
+///
+/// These overrides are only for the Rust code and must be compatible for serialization/deserialization purposes,
+/// i.e. you can use `String` for a GraphQL `ID` but you cannot use a `u32` for a GraphQL `Float`.
+///
+/// ## Name Overrides
+///
+/// The `name_override` option supports renaming various schema elements:
+///
+/// - Type/input/enum names: `name_override = TypeName: NewTypeName`
+/// - Field names: `name_override = Type.field: new_field_name`
+/// - Enum variants: `name_override = Enum.VARIANT: NewVariant`
+///
+/// These overrides are only for the Rust code and will not change serialization/deserialization,
+/// i.e. `serde` will rename to the original GraphQL schema name.
 ///
 /// # AWS SDK Clients
 ///
