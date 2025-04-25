@@ -1,8 +1,8 @@
 mod graphql;
+mod overrides;
 
-use std::collections::HashMap;
-
-use graphql::{GraphQLSchema, TypeOverride};
+use graphql::GraphQLSchema;
+use overrides::{TypeOverride, TypeOverrides};
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, TokenStream as TokenStream2};
 use quote::{format_ident, quote, quote_spanned, ToTokens};
@@ -100,27 +100,6 @@ impl Parse for OptionalParameter {
     }
 }
 
-// Captures type_override = Type.field: CustomType and Type.field.param: CustomType options
-// using a HashMap hierarchy of TypeName -> FieldName -> (Optional field override, Map of arg overrides)
-
-// Top level mapping from GraphQL type names to their field overrides
-type TypeOverrides = HashMap<TypeName, FieldOverrides>;
-type TypeName = String;
-
-// For each type, maps field names to their overrides
-type FieldOverrides = HashMap<FieldName, FieldOverride>;
-type FieldName = String;
-
-// A field can have both a direct type override and argument type overrides
-// - First element: Optional field type override (Type.field: CustomType)
-// - Second element: Map of argument overrides (Type.field.arg: CustomType)
-type FieldOverride = (FieldTypeOverride, ArgTypeOverrides);
-type FieldTypeOverride = Option<TypeOverride>;
-
-// Maps argument names to their type overrides for a field
-type ArgTypeOverrides = HashMap<ArgName, TypeOverride>;
-type ArgName = String;
-
 struct OptionalParameters {
     batch: bool,
     appsync_types: bool,
@@ -128,6 +107,7 @@ struct OptionalParameters {
     lambda_handler: bool,
     hook: Option<Ident>,
     tos: TypeOverrides,
+    // nos: NameOverrides,
 }
 impl Default for OptionalParameters {
     fn default() -> Self {
@@ -137,7 +117,8 @@ impl Default for OptionalParameters {
             appsync_operations: true,
             lambda_handler: true,
             hook: None,
-            tos: HashMap::new(),
+            tos: TypeOverrides::new(),
+            // nos: NameOverrides::new(),
         }
     }
 }

@@ -1,11 +1,12 @@
 use std::cell::RefCell;
 
 use graphql_parser::schema::{Definition, Document, TypeDefinition};
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::Span;
 use quote::{quote_spanned, ToTokens};
-use syn::ext::IdentExt;
 
 use crate::common::{Name, OperationKind};
+
+use super::overrides::FieldOverrides;
 
 thread_local! {
     static CURRENT_SPAN: RefCell<Span> = RefCell::new(Span::call_site());
@@ -216,60 +217,6 @@ impl ToTokens for FieldContext<'_> {
     }
 }
 
-pub(crate) struct TypeOverride {
-    type_name: syn::Ident,
-    field_name: syn::Ident,
-    arg_name: Option<syn::Ident>,
-    type_ident: syn::Type,
-}
-impl TypeOverride {
-    pub(crate) fn type_name(&self) -> String {
-        self.type_name.to_string()
-    }
-    pub(crate) fn field_name(&self) -> String {
-        self.field_name.to_string()
-    }
-    pub(crate) fn arg_name(&self) -> Option<String> {
-        self.arg_name.as_ref().map(|arg_name| arg_name.to_string())
-    }
-    fn _parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let type_name = input.call(syn::Ident::parse_any)?;
-        _ = input.parse::<syn::Token![.]>()?;
-        let field_name = input.call(syn::Ident::parse_any)?;
-        let arg_name = if input.peek(syn::Token![.]) {
-            _ = input.parse::<syn::Token![.]>()?;
-            Some(input.call(syn::Ident::parse_any)?)
-        } else {
-            None
-        };
-        _ = input.parse::<syn::Token![:]>()?;
-        let type_ident = input
-            .parse()
-            .map_err(|e| syn::Error::new(e.span(), "Expected a Type (struct, enum, etc...)"))?;
-        Ok(Self {
-            type_name,
-            field_name,
-            arg_name,
-            type_ident,
-        })
-    }
-}
-impl syn::parse::Parse for TypeOverride {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let begin = input.cursor();
-        Self::_parse(input).map_err(|e: syn::Error| {
-            let mut current = begin;
-            let end = input.cursor();
-            let mut ts = TokenStream::new();
-            while current < end {
-                let (tt, c) = current.token_tree().unwrap();
-                ts.extend(Some(tt).into_iter());
-                current = c;
-            }
-            syn::Error::new_spanned(ts, e.to_string())
-        })
-    }
-}
 struct Structure {
     name: Name,
     fields: Vec<Field>,
@@ -278,7 +225,7 @@ struct Structure {
 impl Structure {
     fn apply_field_overrides(
         &mut self,
-        mut field_overrides: super::FieldOverrides,
+        mut field_overrides: FieldOverrides,
     ) -> Result<(), syn::Error> {
         let mut errors = vec![];
         for field in self.fields.iter_mut() {
@@ -288,7 +235,7 @@ impl Structure {
                     errors.extend(args_override.into_values().flat_map(|to| {
                         syn::Error::new(
                             to.arg_name.expect("always set in args_override").span(),
-                            "Using args overrides is only suported on operations",
+                            "Using args overrides is only supported on operations",
                         )
                     }));
                 }
@@ -502,7 +449,7 @@ impl Operation {
     }
     fn apply_field_override(
         &mut self,
-        (field_type_override, mut arg_type_overrides): super::FieldOverride,
+        (field_type_override, mut arg_type_overrides): super::overrides::FieldOverride,
     ) -> Result<(), syn::Error> {
         let mut errors = vec![];
         if let Some(field_type_override) = field_type_override {
@@ -578,7 +525,7 @@ impl Operations {
     }
     fn apply_field_overrides(
         &mut self,
-        mut field_overrides: super::FieldOverrides,
+        mut field_overrides: super::overrides::FieldOverrides,
     ) -> Result<(), syn::Error> {
         let mut errors = vec![];
         for op in self.0.iter_mut() {
