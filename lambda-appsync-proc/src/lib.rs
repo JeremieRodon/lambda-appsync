@@ -110,7 +110,7 @@ use proc_macro::TokenStream;
 ///
 /// # Examples
 ///
-/// Basic usage with authentication hook:
+/// ## Basic usage with authentication hook:
 /// ```no_run
 /// use lambda_appsync::{appsync_lambda_main, AppsyncEvent, AppsyncResponse, AppsyncIdentity};
 ///
@@ -138,7 +138,7 @@ use proc_macro::TokenStream;
 /// );
 /// ```
 ///
-/// Generate only types for lib code generation:
+/// ## Generate only types for lib code generation:
 /// ```no_run
 /// use lambda_appsync::appsync_lambda_main;
 /// appsync_lambda_main!(
@@ -147,7 +147,7 @@ use proc_macro::TokenStream;
 /// );
 /// ```
 ///
-/// Override field types, operation return type or argument types:
+/// ## Override field types, operation return type or argument types:
 /// ```no_run
 /// use lambda_appsync::appsync_lambda_main;
 /// appsync_lambda_main!(
@@ -167,7 +167,31 @@ use proc_macro::TokenStream;
 /// );
 /// ```
 ///
-/// Disable batch processing:
+/// ## Override type, input, enum, fields or variants names:
+/// ```no_run
+/// use lambda_appsync::appsync_lambda_main;
+/// appsync_lambda_main!(
+///     "schema.graphql",
+///     // Override Player struct name
+///     name_override = Player: NewPlayer,
+///     // Override Player struct field name
+///     name_override = Player.name: email,
+///     // Override team `PYTHON` to be `Snake` (instead of `Python`)
+///     name_override = Team.PYTHON: Snake,
+///     name_override = WeirdFieldNames.await: no_await,
+///     name_override = WeirdFieldNames.crate: no_crate,
+///     name_override = WeirdFieldNames.u8: no_u8,
+///     // MUST also override ALL the operations return type !!!
+///     type_override = Query.players: NewPlayer,
+///     type_override = Query.player: NewPlayer,
+///     type_override = Mutation.createPlayer: NewPlayer,
+///     type_override = Mutation.deletePlayer: NewPlayer,
+/// );
+/// ```
+/// Note that when using `name_override`, the macro does not automatically change the case:
+/// you are responsible to provide the appropriate casing or Clippy will complain.
+///
+/// ## Disable batch processing:
 /// ```no_run
 /// lambda_appsync::appsync_lambda_main!(
 ///     "schema.graphql",

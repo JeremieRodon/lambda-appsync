@@ -18,7 +18,7 @@ appsync_lambda_main!(
     name_override = WeirdFieldNames.crate: no_crate,
     name_override = WeirdFieldNames.u8: no_u8,
 
-    // MUST also override ALL the operation return type !!!
+    // MUST also override ALL the operations return type !!!
     type_override = Query.players: NewPlayer,
     type_override = Query.player: NewPlayer,
     type_override = Mutation.createPlayer: NewPlayer,
