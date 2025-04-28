@@ -1000,7 +1000,7 @@ impl GraphQLSchema {
         let span = current_span();
         tokens.extend(quote_spanned! {span=>
             impl Operation {
-                pub async fn execute(self,
+                async fn execute(self,
                     event: ::lambda_appsync::AppsyncEvent<Self>
                 ) -> ::lambda_appsync::AppsyncResponse {
                     match self._execute(event).await {
