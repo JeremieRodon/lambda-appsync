@@ -5,16 +5,65 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-04-21
+
+### Added
+- New `name_override` option for the `appsync_lambda_main!` macro allowing fine-grained control over generated Rust names:
+  ```rust
+  appsync_lambda_main!(
+      "schema.graphql",
+      // Override type names, the struct will be called `GqlPlayer` in Rust
+      name_override = Player: GqlPlayer,
+      // Override field names, `name` becomes `email` in Rust
+      name_override = Player.name: email,
+      // Override enum variants, `Python` becomes `Snake`
+      name_override = Team.PYTHON: Snake,
+      // Handle Rust keywords gracefully, rename to `kind`
+      name_override = WeirdFieldNames.type: kind,
+  );
+  ```
+
+  Do not forget to also override operation return types if you change type names!
+- Comprehensive end-to-end integration tests for both batch and non-batch configurations, ensuring non-regression of the full AppSync request processing.
+
+### Changed
+- **Major improvement**: Completely revamped compilation error messages for invalid operation handlers:
+  - Error messages now point directly to the problematic code instead of the macro invocation
+  - Clear indication of expected vs found types for arguments and return values
+  - More accurate function signature mismatch reporting
+
+  See [Issue#7](https://github.com/JeremieRodon/lambda-appsync/issues/7) for detailed examples of the improved error messages.
+- Internal restructuring of code generation to use trait bounds for signature verification instead of dummy function calls
+
+### Fixed
+- Compilation error messages that previously showed inverse type expectations (e.g., for return type mismatches)
+- Various edge cases in error reporting related to argument types and counts
+
+### Breaking Changes
+- Removed `pub` visibility from `Operation::execute()` as it was not intended for direct use
+- Moved some internal types to new module structure. While these weren't meant for direct use, code explicitly referencing them may need updates
+- The improved error reporting system may affect existing trybuild tests that were matching against previous error messages
+
+### Internal
+- Better module organization with clearer separation between public and internal APIs
+- Increased generated code size (approximately 2x) to support better error messages. While this may slightly increase compilation times, it has no runtime performance impact as the additional code is optimized away during compilation.
+
+[0.6.0]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.5.4...v0.6.0
+
 ## [v0.5.4] - 2025-04-24
 
 ### Fixed
 - Bug where the `type_override` option was not working correctly for fields or arguments that were Rust keywords
+
+[v0.5.4]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.5.3...v0.5.4
 
 ## [v0.5.3] - 2025-04-24
 
 ### Changed
 - Deprecated `field_type_override` option in favor of `type_override` to better reflect its broader scope covering both fields and arguments
 - (For project devs) Improved internal implementation of type override options for better clarity
+
+[v0.5.3]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.5.2...v0.5.3
 
 ## [v0.5.2] - 2025-04-23
 
@@ -28,6 +77,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Bug in `keep_original_function_name` attribute where it would fail when operation handlers had arguments
 
+[v0.5.2]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.5.1...v0.5.2
+
 ## [v0.5.1] - 2025-04-21
 
 ### Changed
@@ -35,6 +86,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Documentation linking issues between lambda-appsync and lambda-appsync-proc crates
+
+[v0.5.1]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.5.0...v0.5.1
 
 ## [v0.5.0] - 2025-04-21
 
@@ -50,15 +103,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Missing documentation links in the crate documentation
 
+[v0.5.0]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.4.2...v0.5.0
+
 ## [v0.4.2] - 2025-04-19
 
 ### Fixed
 - Clippy warnings and code style improvements
 
+[v0.4.2]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.4.1...v0.4.2
+
 ## [v0.4.1] - 2025-04-19 [YANKED]
 
 ### Changed
 - Enhanced test coverage for null handling in GraphQL schema type generation
+
+[v0.4.1]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.4.0...v0.4.1
 
 ## [v0.4.0] - 2025-04-19 [YANKED]
 
@@ -73,6 +132,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Proper handling of Rust keywords when used as field names in GraphQL schema
 - Documentation examples and subscription filter code blocks
 - README referenced crate version
+
+[v0.4.0]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.3.0...v0.4.0
 
 ## [v0.3.0] - 2025-04-04
 
@@ -93,6 +154,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Memory allocation optimization
 - Documentation improvements
 
+[v0.3.0]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.2.0...v0.3.0
+
 ## [v0.2.0] - 2025-04-01
 
 ### Added
@@ -108,6 +171,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved documentation with compiled examples
 - Reorganized workspace dependencies
 
+[v0.2.0]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.1.0...v0.2.0
+
 ## [v0.1.0] - 2025-03-30
 
 ### Added
@@ -122,14 +187,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for custom type overrides
 - Basic examples and documentation
 
-[v0.5.4]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.5.3...v0.5.4
-[v0.5.3]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.5.2...v0.5.3
-[v0.5.2]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.5.1...v0.5.2
-[v0.5.1]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.5.0...v0.5.1
-[v0.5.0]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.4.2...v0.5.0
-[v0.4.2]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.4.1...v0.4.2
-[v0.4.1]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.4.0...v0.4.1
-[v0.4.0]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.3.0...v0.4.0
-[v0.3.0]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.2.0...v0.3.0
-[v0.2.0]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.1.0...v0.2.0
 [v0.1.0]: https://github.com/JeremieRodon/lambda-appsync/releases/tag/v0.1.0
