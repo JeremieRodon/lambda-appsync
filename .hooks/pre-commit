@@ -19,7 +19,7 @@ echo "Running pre-commit checks on staged files..."
 git stash push -q --include-untracked --keep-index
 
 # Run checks in a subshell to ensure we always restore the working tree
-(
+if (
     # Check formatting only on staged Rust files
     echo "Checking formatting..."
     cargo fmt --check
@@ -35,8 +35,11 @@ git stash push -q --include-untracked --keep-index
     # Run tests that could be affected by the changes
     echo "Running tests..."
     cargo test --all-features
-)
-CHECK_STATUS=$?
+) ; then
+    CHECK_STATUS=0
+else
+    CHECK_STATUS=1
+fi
 
 # Restore working tree state
 if git stash list | grep -q "stash@{0}"; then
