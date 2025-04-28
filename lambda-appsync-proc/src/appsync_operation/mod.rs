@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{quote, ToTokens};
+use quote::{quote, quote_spanned, ToTokens};
 use syn::{braced, parenthesized, parse::Parse, parse_macro_input, Ident, Token, Type, Visibility};
 
 use crate::common::{Name, OperationKind};
@@ -26,7 +26,6 @@ impl Parse for ArgsOption {
 struct Args {
     op_kind: OperationKind,
     op_name: Name,
-    op_name_span: proc_macro2::Span,
     keep_original_function_name: bool,
     with_appsync_event: bool,
 }
@@ -50,13 +49,11 @@ impl Parse for Args {
         let op_name;
         _ = parenthesized!(op_name in input);
         let op_name = op_name.parse::<Ident>()?;
-        let op_name_span = op_name.span();
-        let op_name = Name::from(op_name.to_string());
+        let op_name = Name::from((op_name.to_string(), op_name.span()));
 
         let mut args = Self {
             op_kind,
             op_name,
-            op_name_span,
             keep_original_function_name: false,
             with_appsync_event: false,
         };
@@ -115,6 +112,19 @@ struct Fct {
     return_type: Type,
     body: TokenStream2,
 }
+impl Fct {
+    fn dummy_function(&self) -> TokenStream2 {
+        let fct_name = &self.fct_name;
+        let args = self.args.iter();
+        let return_type = &self.return_type;
+        quote! {
+            #[allow(unused_variables)]
+            fn #fct_name(#(#args),*) -> #return_type {
+                todo!()
+            };
+        }
+    }
+}
 impl Parse for Fct {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let vis = if input.peek(Token![pub]) {
@@ -160,10 +170,99 @@ impl Parse for Fct {
         })
     }
 }
+impl ToTokens for Fct {
+    fn to_tokens(&self, tokens: &mut TokenStream2) {
+        let vis = if let Some(ref vis) = self.vis {
+            vis.into_token_stream()
+        } else {
+            TokenStream2::new()
+        };
+
+        let fct_name = &self.fct_name;
+        let args = self.args.iter();
+        let orig_fct_body = &self.body;
+        let return_type = &self.return_type;
+
+        tokens.extend(quote! {
+            #vis async fn #fct_name(
+                #(#args),*
+            ) -> #return_type {
+                #orig_fct_body
+            }
+        });
+    }
+}
 
 struct AppsyncOperation {
     args: Args,
     fct: Fct,
+}
+impl AppsyncOperation {
+    fn op_module_path(&self) -> TokenStream2 {
+        let op_module_name = self.args.op_name.to_var_ident();
+        let span = op_module_name.span();
+        let op_type_module = Ident::new(self.args.op_kind.module_name(), span);
+        let op_submodule_name = if self.args.with_appsync_event {
+            Ident::new("with_event", span)
+        } else {
+            Ident::new("without_event", span)
+        };
+        quote_spanned! {span=>
+            crate::__operations::#op_type_module::#op_module_name::#op_submodule_name
+        }
+    }
+    fn check_signature_to_tokens(&self) -> TokenStream2 {
+        let op_module_path = self.op_module_path();
+
+        let fct_name = &self.fct.fct_name;
+        let dymmy_fct = self.fct.dummy_function();
+        quote! {
+            const _: fn() = || {
+                // Compile-time assertion only – never calls the user fn.
+                #dymmy_fct
+                #op_module_path::check_signature(#fct_name);
+            };
+        }
+    }
+
+    fn impl_operation_to_tokens(&self) -> TokenStream2 {
+        let vis = if let Some(ref vis) = self.fct.vis {
+            vis.into_token_stream()
+        } else {
+            TokenStream2::new()
+        };
+
+        let operation_body = if self.args.keep_original_function_name {
+            // Call the original fct
+            let fct_name = &self.fct.fct_name;
+            let arg_names = self.fct.args.iter().map(|a| &a.name);
+            &quote! {
+                #fct_name(#(#arg_names),*).await
+            }
+        } else {
+            // Inline the original fct body
+            &self.fct.body
+        };
+
+        let op_module_path = self.op_module_path();
+
+        let op_fct_name = self
+            .args
+            .op_name
+            .to_prefixed_fct_ident(self.args.op_kind.fct_prefix());
+        let arg_names = self.fct.args.iter().map(|a| &a.name);
+        let return_type = &self.fct.return_type;
+        quote! {
+            impl crate::Operation {
+                #vis async fn #op_fct_name(
+                    mut event: ::lambda_appsync::AppsyncEvent<Self>
+                ) -> #return_type {
+                    let (#(#arg_names,)*) = #op_module_path::operation_arguments(&mut event)?;
+                    #operation_body
+                }
+            }
+        }
+    }
 }
 impl TryFrom<(Args, Fct)> for AppsyncOperation {
     type Error = syn::Error;
@@ -174,68 +273,10 @@ impl TryFrom<(Args, Fct)> for AppsyncOperation {
 }
 impl ToTokens for AppsyncOperation {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
-        let vis = if let Some(ref vis) = self.fct.vis {
-            vis.into_token_stream()
-        } else {
-            TokenStream2::new()
-        };
-        let mut op_fct_name = self
-            .args
-            .op_name
-            .to_prefixed_fct_ident(self.args.op_kind.fct_prefix());
-        op_fct_name.set_span(self.args.op_name_span);
-
-        let fct_name = &self.fct.fct_name;
-        let args = &self.fct.args;
-        let arg_names = self.fct.args.iter().map(|a| &a.name).collect::<Vec<_>>();
-        let return_type = &self.fct.return_type;
-        let body = &self.fct.body;
-
-        let operation_body = if self.args.keep_original_function_name {
-            &quote! {
-                #fct_name(#(#arg_names,)*).await
-            }
-        } else {
-            &self.fct.body
-        };
-
-        let operation_args = if self.args.with_appsync_event {
-            quote! { #(#args,)* }
-        } else {
-            quote! { #(#args,)* _event: &::lambda_appsync::AppsyncEvent<crate::Operation>}
-        };
-
-        let default_operation_call_args = if self.args.with_appsync_event {
-            quote! { #(#arg_names,)* }
-        } else {
-            quote! { #(#arg_names,)* _event}
-        };
-
-        tokens.extend(quote! {
-            impl crate::Operation {
-                #vis async fn #op_fct_name(
-                    #operation_args
-                ) -> #return_type {
-                    // This is just a marker to ensure an error is thrown if the user did not chose
-                    // the correct signature for the function. Should be optimized away by the compiler.
-                    if false {
-                        return <crate::Operation as crate::DefautOperations>::#op_fct_name(
-                            #default_operation_call_args
-                        )
-                        .await;
-                    }
-                    #operation_body
-                }
-            }
-        });
+        tokens.extend(self.check_signature_to_tokens());
+        tokens.extend(self.impl_operation_to_tokens());
         if self.args.keep_original_function_name {
-            tokens.extend(quote! {
-                #vis async fn #fct_name(
-                    #(#args,)*
-                ) -> #return_type {
-                    #body
-                }
-            });
+            self.fct.to_tokens(tokens);
         }
     }
 }

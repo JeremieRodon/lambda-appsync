@@ -16,7 +16,7 @@ async fn get_game_status() -> Result<GameStatus, AppsyncError> {
 }
 
 #[appsync_operation(query(player))]
-async fn get_player(id: ID) -> Result<Option<Player>, AppsyncError> {
+async fn get_player(_id: ID) -> Result<Option<Player>, AppsyncError> {
     Ok(None)
 }
 
@@ -44,12 +44,12 @@ async fn set_game_status() -> Result<GameStatus, AppsyncError> {
 }
 
 #[appsync_operation(subscription(onCreatePlayer))]
-async fn on_create_player(name: String) -> Result<Option<FilterGroup>, AppsyncError> {
+async fn on_create_player(_name: String) -> Result<Option<FilterGroup>, AppsyncError> {
     Ok(None)
 }
 
 #[appsync_operation(subscription(onDeletePlayer))]
-async fn on_delete_player(id: ID) -> Result<Option<FilterGroup>, AppsyncError> {
+async fn on_delete_player(_id: ID) -> Result<Option<FilterGroup>, AppsyncError> {
     Ok(None)
 }
 

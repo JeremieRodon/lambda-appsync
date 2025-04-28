@@ -9,19 +9,19 @@ fn main() {}
 
 // Queries
 #[appsync_operation(query(players), with_appsync_event)]
-async fn get_players(event: &AppsyncEvent<Operation>) -> Result<Vec<Player>, AppsyncError> {
+async fn get_players(_event: &AppsyncEvent<Operation>) -> Result<Vec<Player>, AppsyncError> {
     Ok(vec![])
 }
 
 #[appsync_operation(query(gameStatus), with_appsync_event)]
-async fn get_game_status(event: &AppsyncEvent<Operation>) -> Result<GameStatus, AppsyncError> {
+async fn get_game_status(_event: &AppsyncEvent<Operation>) -> Result<GameStatus, AppsyncError> {
     Ok(GameStatus::Started)
 }
 
 #[appsync_operation(query(player), with_appsync_event)]
 async fn get_player(
     id: ID,
-    event: &AppsyncEvent<Operation>,
+    _event: &AppsyncEvent<Operation>,
 ) -> Result<Option<Player>, AppsyncError> {
     Ok(Some(Player {
         id,
@@ -34,7 +34,7 @@ async fn get_player(
 #[appsync_operation(mutation(createPlayer), with_appsync_event)]
 async fn create_player(
     name: String,
-    event: &AppsyncEvent<Operation>,
+    _event: &AppsyncEvent<Operation>,
 ) -> Result<Player, AppsyncError> {
     Ok(Player {
         id: ID::new(),
@@ -44,7 +44,7 @@ async fn create_player(
 }
 
 #[appsync_operation(mutation(deletePlayer), with_appsync_event)]
-async fn delete_player(id: ID, event: &AppsyncEvent<Operation>) -> Result<Player, AppsyncError> {
+async fn delete_player(id: ID, _event: &AppsyncEvent<Operation>) -> Result<Player, AppsyncError> {
     Ok(Player {
         id,
         name: "deleted".into(),
@@ -53,7 +53,7 @@ async fn delete_player(id: ID, event: &AppsyncEvent<Operation>) -> Result<Player
 }
 
 #[appsync_operation(mutation(setGameStatus), with_appsync_event)]
-async fn set_game_status(event: &AppsyncEvent<Operation>) -> Result<GameStatus, AppsyncError> {
+async fn set_game_status(_event: &AppsyncEvent<Operation>) -> Result<GameStatus, AppsyncError> {
     Ok(GameStatus::Stopped)
 }
 
@@ -61,7 +61,7 @@ async fn set_game_status(event: &AppsyncEvent<Operation>) -> Result<GameStatus, 
 #[appsync_operation(subscription(onCreatePlayer), with_appsync_event)]
 async fn on_create_player(
     name: String,
-    event: &AppsyncEvent<Operation>,
+    _event: &AppsyncEvent<Operation>,
 ) -> Result<Option<FilterGroup>, AppsyncError> {
     Ok(Some(FieldPath::new("name")?.contains(name).into()))
 }
@@ -69,14 +69,14 @@ async fn on_create_player(
 #[appsync_operation(subscription(onDeletePlayer), with_appsync_event)]
 async fn on_delete_player(
     id: ID,
-    event: &AppsyncEvent<Operation>,
+    _event: &AppsyncEvent<Operation>,
 ) -> Result<Option<FilterGroup>, AppsyncError> {
     Ok(Some(FieldPath::new("id")?.eq(id).into()))
 }
 
 #[appsync_operation(subscription(onGameStatusChange), with_appsync_event)]
 async fn on_game_status_change(
-    event: &AppsyncEvent<Operation>,
+    _event: &AppsyncEvent<Operation>,
 ) -> Result<Option<FilterGroup>, AppsyncError> {
     Ok(Some(
         FieldPath::new("status")?

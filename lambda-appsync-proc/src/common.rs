@@ -237,9 +237,6 @@ impl Name {
             proc_macro2::Ident::new(&ident_str, self.span)
         }
     }
-    pub(crate) fn to_unused_param_ident(&self) -> proc_macro2::Ident {
-        proc_macro2::Ident::new(&format!("_{}", self.to_case(CaseType::Snake)), self.span)
-    }
     pub(crate) fn to_prefixed_fct_ident(&self, prefix: &str) -> proc_macro2::Ident {
         proc_macro2::Ident::new(
             &format!("{prefix}_{}", self.to_case(CaseType::Snake)),
@@ -269,6 +266,13 @@ impl OperationKind {
             Self::Query => "query",
             Self::Mutation => "mutation",
             Self::Subscription => "subscription",
+        }
+    }
+    pub(crate) fn module_name(self) -> &'static str {
+        match self {
+            Self::Query => "queries",
+            Self::Mutation => "mutations",
+            Self::Subscription => "subscriptions",
         }
     }
     pub(crate) fn operation_enum_name(self, span: Span) -> proc_macro2::Ident {

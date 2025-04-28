@@ -1,46 +1,30 @@
-error[E0277]: the trait bound `&AppsyncEvent<Operation>: DeserializeOwned` is not satisfied
- --> tests/fail/missing_arg.rs:3:22
-  |
-3 | appsync_lambda_main!("../../../../schema.graphql");
-  |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `for<'de> Deserialize<'de>` is not implemented for `&AppsyncEvent<Operation>`, which is required by `&AppsyncEvent<Operation>: DeserializeOwned`
-  |
-  = help: the trait `Deserialize<'_>` is implemented for `AppsyncEvent<_>`
-  = help: for that trait implementation, expected `AppsyncEvent<_>`, found `&AppsyncEvent<Operation>`
-  = note: required for `&AppsyncEvent<Operation>` to implement `DeserializeOwned`
-note: required by a bound in `arg_from_json`
- --> $WORKSPACE/lambda-appsync/src/lib.rs
-  |
-  | pub fn arg_from_json<T: DeserializeOwned>(
-  |                         ^^^^^^^^^^^^^^^^ required by this bound in `arg_from_json`
-
-error[E0061]: this function takes 1 argument but 2 arguments were supplied
- --> tests/fail/missing_arg.rs:3:1
-  |
-3 | appsync_lambda_main!("../../../../schema.graphql");
-  | ^^^^^^^^^^^^^^^^^^^^^----------------------------^
-  |                      |
-  |                      unexpected argument #2 of type `&AppsyncEvent<Operation>`
-  |
-note: associated function defined here
- --> tests/fail/missing_arg.rs:6:30
-  |
-6 | #[appsync_operation(mutation(createPlayer))]
-  | -----------------------------^^^^^^^^^^^^---
-  = note: this error originates in the macro `appsync_lambda_main` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0061]: this function takes 2 arguments but 1 argument was supplied
+error[E0308]: mismatched types
  --> tests/fail/missing_arg.rs:6:1
   |
 6 | #[appsync_operation(mutation(createPlayer))]
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ argument #1 of type `std::string::String` is missing
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  | |
+  | expected `(String,)`, found `()`
+  | this expression has type `(std::string::String,)`
   |
-note: associated function defined here
+  = note:  expected tuple `(std::string::String,)`
+          found unit type `()`
+  = note: this error originates in the attribute macro `appsync_operation` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0593]: function is expected to take 1 argument, but it takes 0 arguments
+ --> tests/fail/missing_arg.rs:7:10
+  |
+6 | #[appsync_operation(mutation(createPlayer))]
+  | --------------------------------------------
+  | |
+  | takes 0 arguments
+  | required by a bound introduced by this call
+7 | async fn create_player() -> Result<Player, AppsyncError> {
+  |          ^^^^^^^^^^^^^ expected function that takes 1 argument
+  |
+note: required by a bound in `create_player::without_event::check_signature`
  --> tests/fail/missing_arg.rs:3:1
   |
 3 | appsync_lambda_main!("../../../../schema.graphql");
-  | ^^^^^^^^^^^^^^^^^^^^^----------------------------^
-  = note: this error originates in the attribute macro `appsync_operation` which comes from the expansion of the macro `appsync_lambda_main` (in Nightly builds, run with -Z macro-backtrace for more info)
-help: provide the argument
-  |
-6 | #[appsync_operation(mutation(createPlayer))](/* std::string::String */, #[appsync_operation(mutation(createPlayer))])
-  |                                             +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `check_signature`
+  = note: this error originates in the macro `appsync_lambda_main` (in Nightly builds, run with -Z macro-backtrace for more info)

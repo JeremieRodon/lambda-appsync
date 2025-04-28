@@ -2,7 +2,8 @@ use std::cell::RefCell;
 
 use graphql_parser::schema::{Definition, Document, TypeDefinition};
 use proc_macro2::Span;
-use quote::{quote_spanned, ToTokens};
+use quote::{quote, quote_spanned, ToTokens};
+use syn::spanned::Spanned;
 
 use crate::common::{Name, OperationKind};
 
@@ -459,18 +460,6 @@ impl ToTokens for Enum {
     }
 }
 
-struct UnusedParam<'a>(&'a Field);
-impl ToTokens for UnusedParam<'_> {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let name = self.0.name.to_unused_param_ident();
-        let field_type = &self.0.field_type;
-        let span = current_span();
-        tokens.extend(quote_spanned! {span=>
-            #name: #field_type
-        });
-    }
-}
-
 struct Operation {
     name: Name,
     args: Vec<Field>,
@@ -482,7 +471,6 @@ impl Operation {
     }
     fn default_op(&self, kind: OperationKind) -> proc_macro2::TokenStream {
         let fct_name = self.name.to_prefixed_fct_ident(kind.fct_prefix());
-        let params = self.args.iter().map(UnusedParam);
         let span = current_span();
         let return_type = match kind {
             OperationKind::Query | OperationKind::Mutation => {
@@ -509,7 +497,7 @@ impl Operation {
             },
         };
         quote_spanned! {span=>
-            async fn #fct_name(#(#params,)* _event: &::lambda_appsync::AppsyncEvent<Operation>) -> ::core::result::Result<#return_type, ::lambda_appsync::AppsyncError> {
+            async fn #fct_name(_event: ::lambda_appsync::AppsyncEvent<Operation>) -> ::core::result::Result<#return_type, ::lambda_appsync::AppsyncError> {
                 #default_body
             }
         }
@@ -519,14 +507,86 @@ impl Operation {
         let operation_enum_name = kind.operation_enum_name(span);
         let variant = self.name.to_type_ident();
         let fct_name = self.name.to_prefixed_fct_ident(kind.fct_prefix());
-        let param_strs = self.args.iter().map(|f| f.name.orig());
         quote_spanned! {span=>
-            #operation_enum_name::#variant => Operation::#fct_name(
-                #(::lambda_appsync::arg_from_json(&mut args, #param_strs)?,)*
-                event
-            )
+            #operation_enum_name::#variant => Operation::#fct_name(event)
             .await
             .map(::lambda_appsync::res_to_json)
+        }
+    }
+    fn argument_extractor(&self, with_event: bool) -> proc_macro2::TokenStream {
+        let span = current_span();
+        let params_types = self.args.iter().map(|arg| &arg.field_type);
+        let param_strs = self.args.iter().map(|arg| arg.name.orig());
+
+        let return_type = if with_event {
+            quote! {
+                (#(#params_types,)* &::lambda_appsync::AppsyncEvent<Operation>,)
+            }
+        } else {
+            quote! {
+                (#(#params_types,)*)
+            }
+        };
+        let returned_tuple = if with_event {
+            quote! {
+                (#(::lambda_appsync::arg_from_json(&mut args, #param_strs)?,)* event,)
+            }
+        } else {
+            quote! {
+                (#(::lambda_appsync::arg_from_json(&mut args, #param_strs)?,)*)
+            }
+        };
+
+        let extract_args = if self.args.is_empty() {
+            quote! {
+                _ = event.args.take();
+            }
+        } else {
+            quote! {
+                let mut args = event.args.take();
+            }
+        };
+        quote_spanned! {span=>
+            pub(crate) fn operation_arguments(event: &mut ::lambda_appsync::AppsyncEvent<Operation>) -> ::core::result::Result<#return_type, ::lambda_appsync::AppsyncError> {
+                #extract_args
+                 Ok(#returned_tuple)
+            }
+        }
+    }
+    fn operation_module(&self, kind: OperationKind) -> proc_macro2::TokenStream {
+        let module_name = self.name.to_var_ident();
+        let params_types = self
+            .args
+            .iter()
+            .map(|arg| &arg.field_type)
+            .collect::<Vec<_>>();
+        let arument_extractor_without_event = self.argument_extractor(false);
+        let arument_extractor_with_event = self.argument_extractor(true);
+        let return_type = match kind {
+            OperationKind::Query | OperationKind::Mutation => {
+                let return_type = &self.return_type;
+                quote_spanned! {return_type.span()=>
+                    ::core::result::Result<#return_type, ::lambda_appsync::AppsyncError>
+                }
+            }
+            OperationKind::Subscription => quote_spanned! {current_span()=>
+                ::core::result::Result<::core::option::Option<::lambda_appsync::subscription_filters::FilterGroup>, ::lambda_appsync::AppsyncError>
+            },
+        };
+
+        quote! {
+            pub(crate) mod #module_name {
+                pub(crate) mod without_event {
+                    use super::super::super::*;
+                    pub(crate) fn check_signature<F: Fn(#(#params_types),*) -> #return_type>(_f: F) {}
+                    #arument_extractor_without_event
+                }
+                pub(crate) mod with_event {
+                    use super::super::super::*;
+                    pub(crate) fn check_signature<F: Fn(#(#params_types,)* &::lambda_appsync::AppsyncEvent<Operation>) -> #return_type>(_f: F) {}
+                    #arument_extractor_with_event
+                }
+            }
         }
     }
     fn apply_type_overrides(
@@ -606,6 +666,12 @@ impl Operations {
         kind: OperationKind,
     ) -> impl Iterator<Item = proc_macro2::TokenStream> + '_ {
         self.0.iter().map(move |op| op.execute_match_arm(kind))
+    }
+    fn operation_module_iter(
+        &self,
+        kind: OperationKind,
+    ) -> impl Iterator<Item = proc_macro2::TokenStream> + '_ {
+        self.0.iter().map(move |op| op.operation_module(kind))
     }
     fn apply_type_overrides(
         &mut self,
@@ -699,7 +765,6 @@ pub(crate) struct GraphQLSchema {
     structures: Vec<Structure>,
     enums: Vec<Enum>,
 }
-
 impl GraphQLSchema {
     pub(crate) fn new(
         mut doc: Document<'_, String>,
@@ -904,6 +969,8 @@ impl GraphQLSchema {
                 Mutation(#mutation_field_name),
                 Subscription(#subscription_field_name),
             }
+            use __operations::DefaultOperations;
+            impl DefaultOperations for Operation {}
         });
     }
     fn default_operations_to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
@@ -912,17 +979,15 @@ impl GraphQLSchema {
         let subscription_field_default_ops = self
             .subscriptions
             .default_op_iter(OperationKind::Subscription);
-        let span = current_span();
-        tokens.extend(quote_spanned! {span=>
-            #[allow(dead_code)]
-            trait DefautOperations {
+        tokens.extend(quote_spanned! {current_span()=>
+            pub(super) trait DefaultOperations {
                 #(#query_field_default_ops)*
                 #(#mutation_field_default_ops)*
                 #(#subscription_field_default_ops)*
             }
-            impl DefautOperations for Operation {}
         });
     }
+
     fn impl_operation_to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let query_field_execute_match_arm =
             self.queries.execute_match_arm_iter(OperationKind::Query);
@@ -936,10 +1001,9 @@ impl GraphQLSchema {
         tokens.extend(quote_spanned! {span=>
             impl Operation {
                 pub async fn execute(self,
-                    args: ::lambda_appsync::serde_json::Value,
-                    event: &::lambda_appsync::AppsyncEvent<Operation>
+                    event: ::lambda_appsync::AppsyncEvent<Self>
                 ) -> ::lambda_appsync::AppsyncResponse {
-                    match self._execute(args, event).await {
+                    match self._execute(event).await {
                         ::core::result::Result::Ok(v) => v.into(),
                         ::core::result::Result::Err(e) => {
                             ::lambda_appsync::log::error!("{e}");
@@ -949,8 +1013,7 @@ impl GraphQLSchema {
                 }
                 async fn _execute(
                     self,
-                    mut args: ::lambda_appsync::serde_json::Value,
-                    event: &::lambda_appsync::AppsyncEvent<Operation>
+                    event: ::lambda_appsync::AppsyncEvent<Self>
                 ) -> ::core::result::Result<::lambda_appsync::serde_json::Value, ::lambda_appsync::AppsyncError> {
                     match self {
                         Operation::Query(query_field) => match query_field {
@@ -967,13 +1030,40 @@ impl GraphQLSchema {
             }
         });
     }
+    fn operations_module_to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let mut default_operations_trait = proc_macro2::TokenStream::new();
+        self.default_operations_to_tokens(&mut default_operations_trait);
+        let query_operation_module_iter = self.queries.operation_module_iter(OperationKind::Query);
+        let mutation_operation_module_iter = self
+            .mutations
+            .operation_module_iter(OperationKind::Mutation);
+        let subscription_operation_module_iter = self
+            .subscriptions
+            .operation_module_iter(OperationKind::Subscription);
+        tokens.extend(quote! {
+            #[allow(dead_code)]
+            mod __operations {
+                use super::*;
+                #default_operations_trait
+                pub(crate) mod queries {
+                    #(#query_operation_module_iter)*
+                }
+                pub(crate) mod mutations {
+                    #(#mutation_operation_module_iter)*
+                }
+                pub(crate) mod subscriptions {
+                    #(#subscription_operation_module_iter)*
+                }
+            }
+        });
+    }
     pub(crate) fn appsync_types_to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         self.enums_to_tokens(tokens);
         self.structs_to_tokens(tokens);
     }
     pub(crate) fn appsync_operations_to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        self.operations_module_to_tokens(tokens);
         self.operation_to_tokens(tokens);
-        self.default_operations_to_tokens(tokens);
         self.impl_operation_to_tokens(tokens);
     }
 }

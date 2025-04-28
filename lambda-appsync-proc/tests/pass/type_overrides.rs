@@ -126,7 +126,7 @@ async fn delete_player(id: String) -> Result<Player, AppsyncError> {
 
 // Id is now a string
 #[appsync_operation(subscription(onDeletePlayer))]
-async fn on_delete_player(id: String) -> Result<Option<FilterGroup>, AppsyncError> {
+async fn on_delete_player(_id: String) -> Result<Option<FilterGroup>, AppsyncError> {
     Ok(None)
 }
 

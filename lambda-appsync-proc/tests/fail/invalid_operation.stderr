@@ -1,5 +1,17 @@
-error[E0576]: cannot find method or associated constant `query_nonexistent` in trait `crate::DefautOperations`
+error[E0433]: failed to resolve: could not find `nonexistent` in `queries`
  --> tests/fail/invalid_operation.rs:5:27
   |
 5 | #[appsync_operation(query(nonexistent))]
-  |                           ^^^^^^^^^^^ not found in `crate::DefautOperations`
+  |                           ^^^^^^^^^^^ could not find `nonexistent` in `queries`
+  |
+help: consider importing one of these modules
+  |
+1 + use crate::__operations::mutations::create_player::without_event;
+  |
+1 + use crate::__operations::mutations::delete_player::without_event;
+  |
+1 + use crate::__operations::mutations::set_game_status::without_event;
+  |
+1 + use crate::__operations::queries::game_status::without_event;
+  |
+    and 5 other candidates

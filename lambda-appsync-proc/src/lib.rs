@@ -71,6 +71,7 @@ use proc_macro::TokenStream;
 /// - Return type: Must be a valid AWS SDK client like `aws_sdk_dynamodb::Client`
 ///
 /// ```no_run
+/// # mod sub {
 /// use lambda_appsync::appsync_lambda_main;
 ///
 /// // Single client
@@ -78,8 +79,11 @@ use proc_macro::TokenStream;
 ///     "schema.graphql",
 ///     dynamodb() -> aws_sdk_dynamodb::Client,
 /// );
+/// # }
+/// # fn main() {}
 /// ```
 /// ```no_run
+/// # mod sub {
 /// # use lambda_appsync::appsync_lambda_main;
 /// // Multiple clients
 /// appsync_lambda_main!(
@@ -87,12 +91,14 @@ use proc_macro::TokenStream;
 ///     dynamodb() -> aws_sdk_dynamodb::Client,
 ///     s3() -> aws_sdk_s3::Client,
 /// );
+/// # }
+/// # fn main() {}
 /// ```
 ///
 /// These client functions can then be called from anywhere in the Lambda crate:
 /// ```no_run
 /// # fn dynamodb() -> aws_sdk_dynamodb::Client {
-/// #  todo!()
+/// #   todo!()
 /// # }
 /// # fn s3() -> aws_sdk_s3::Client {
 /// #   todo!()
@@ -112,6 +118,7 @@ use proc_macro::TokenStream;
 ///
 /// ## Basic usage with authentication hook:
 /// ```no_run
+/// # mod sub {
 /// use lambda_appsync::{appsync_lambda_main, AppsyncEvent, AppsyncResponse, AppsyncIdentity};
 ///
 /// fn is_authorized(identity: &AppsyncIdentity) -> bool {
@@ -136,19 +143,25 @@ use proc_macro::TokenStream;
 ///     hook = auth_hook,
 ///     dynamodb() -> aws_sdk_dynamodb::Client
 /// );
+/// # }
+/// # fn main() {}
 /// ```
 ///
 /// ## Generate only types for lib code generation:
 /// ```no_run
+/// # mod sub {
 /// use lambda_appsync::appsync_lambda_main;
 /// appsync_lambda_main!(
 ///     "schema.graphql",
 ///     only_appsync_types = true
 /// );
+/// # }
+/// # fn main() {}
 /// ```
 ///
 /// ## Override field types, operation return type or argument types:
 /// ```no_run
+/// # mod sub {
 /// use lambda_appsync::appsync_lambda_main;
 /// appsync_lambda_main!(
 ///     "schema.graphql",
@@ -165,10 +178,13 @@ use proc_macro::TokenStream;
 ///     type_override = Mutation.deletePlayer.id: String,
 ///     type_override = Subscription.onDeletePlayer.id: String,
 /// );
+/// # }
+/// # fn main() {}
 /// ```
 ///
 /// ## Override type, input, enum, fields or variants names:
 /// ```no_run
+/// # mod sub {
 /// use lambda_appsync::appsync_lambda_main;
 /// appsync_lambda_main!(
 ///     "schema.graphql",
@@ -187,16 +203,21 @@ use proc_macro::TokenStream;
 ///     type_override = Mutation.createPlayer: NewPlayer,
 ///     type_override = Mutation.deletePlayer: NewPlayer,
 /// );
+/// # }
+/// # fn main() {}
 /// ```
 /// Note that when using `name_override`, the macro does not automatically change the case:
 /// you are responsible to provide the appropriate casing or Clippy will complain.
 ///
 /// ## Disable batch processing:
 /// ```no_run
+/// # mod sub {
 /// lambda_appsync::appsync_lambda_main!(
 ///     "schema.graphql",
 ///     batch = false
 /// );
+/// # }
+/// # fn main() {}
 /// ```
 #[proc_macro]
 pub fn appsync_lambda_main(input: TokenStream) -> TokenStream {

@@ -219,12 +219,12 @@ impl OptionalParameters {
                     no_type_entry.0.replace(no);
                 }
             }
-            OptionalParameter::ExcludeLambdaHandler(_) => (),
-            OptionalParameter::OnlyLambdaHandler(_) => (),
-            OptionalParameter::ExcludeAppsyncTypes(_) => (),
-            OptionalParameter::OnlyAppsyncTypes(_) => (),
-            OptionalParameter::ExcludeAppsyncOperations(_) => (),
-            OptionalParameter::OnlyAppsyncOperations(_) => (),
+            OptionalParameter::ExcludeLambdaHandler(_)
+            | OptionalParameter::OnlyLambdaHandler(_)
+            | OptionalParameter::ExcludeAppsyncTypes(_)
+            | OptionalParameter::OnlyAppsyncTypes(_)
+            | OptionalParameter::ExcludeAppsyncOperations(_)
+            | OptionalParameter::OnlyAppsyncOperations(_) => (),
         }
     }
 }
@@ -314,14 +314,13 @@ impl AppsyncLambdaMain {
             quote! {}
         };
         tokens.extend(quote! {
-            async fn appsync_handler(mut event: ::lambda_appsync::AppsyncEvent<Operation>) -> ::lambda_appsync::AppsyncResponse {
+            async fn appsync_handler(event: ::lambda_appsync::AppsyncEvent<Operation>) -> ::lambda_appsync::AppsyncResponse {
                 ::lambda_appsync::log::info!("event={event:?}");
                 ::lambda_appsync::log::info!("operation={:?}", event.info.operation);
 
                 #call_hook
 
-                let args = event.args.take();
-                event.info.operation.execute(args, &event).await
+                event.info.operation.execute(event).await
             }
         });
         if self.options.batch {
