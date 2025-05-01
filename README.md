@@ -1,6 +1,6 @@
 <!-- PROJECT SHIELDS -->
 [![crates.io](https://img.shields.io/crates/v/lambda-appsync.svg)](https://crates.io/crates/lambda-appsync)
-[![docs.rs](https://docs.rs/lambda-appsync/badge.svg)](https://docs.rs/lambda-appsync/0.1.0/lambda_appsync)
+[![docs.rs](https://docs.rs/lambda-appsync/badge.svg)](https://docs.rs/lambda-appsync/latest/lambda_appsync)
 [![CI](https://github.com/JeremieRodon/lambda-appsync/workflows/CI/badge.svg)](https://github.com/JeremieRodon/lambda-appsync/actions)
 [![License](https://img.shields.io/github/license/JeremieRodon/lambda-appsync.svg)](https://github.com/JeremieRodon/lambda-appsync/blob/master/LICENSE)
 
