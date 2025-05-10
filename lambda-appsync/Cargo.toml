@@ -30,9 +30,9 @@ tokio = { workspace = true, optional = true }
 lambda_runtime = { workspace = true, optional = true }
 aws-config = { workspace = true, optional = true }
 
-
 [dev-dependencies]
 aws-sdk-dynamodb = { workspace = true }
+
 
 [features]
 default = ["std"]
