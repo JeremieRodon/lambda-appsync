@@ -1,6 +1,7 @@
-use std::ops::Deref;
-
+use core::ops::Deref;
 use serde::{Deserialize, Serialize};
+
+use crate::stdlib::alloc::string::{String, ToString};
 
 /// A custom UUID-based identifier type for AppSync GraphQL objects.
 ///
@@ -57,7 +58,7 @@ impl TryFrom<String> for ID {
     }
 }
 impl core::fmt::Display for ID {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.0)
     }
 }

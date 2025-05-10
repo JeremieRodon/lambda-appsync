@@ -1,8 +1,12 @@
+use crate::stdlib::alloc::{borrow::ToOwned, string::String};
+
 impl_new_string!(AWSPhone);
 
 #[cfg(test)]
 mod tests {
     use super::AWSPhone;
+
+    use crate::stdlib::alloc::string::{String, ToString};
 
     #[test]
     fn phone_from_string() {

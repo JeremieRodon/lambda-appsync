@@ -1,5 +1,7 @@
+use core::time::Duration;
 use serde::{Deserialize, Serialize};
-use std::time::{Duration, SystemTime};
+
+use web_time::{SystemTime, UNIX_EPOCH};
 
 /// AWS AppSync specific GraphQL scalar type implemented [SystemTime] new-type.
 /// Note that this type implements Copy
@@ -63,21 +65,21 @@ impl From<AWSTimestamp> for u64 {
     fn from(value: AWSTimestamp) -> Self {
         value
             .0
-            .duration_since(std::time::UNIX_EPOCH)
+            .duration_since(UNIX_EPOCH)
             .expect("we should never manipulate dates earlier than EPOCH")
             .as_secs()
     }
 }
 
-impl std::fmt::Display for AWSTimestamp {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for AWSTimestamp {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", u64::from(*self))
     }
 }
 
 impl From<u64> for AWSTimestamp {
     fn from(value: u64) -> Self {
-        Self(std::time::UNIX_EPOCH + Duration::from_secs(value))
+        Self(UNIX_EPOCH + Duration::from_secs(value))
     }
 }
 
@@ -87,33 +89,33 @@ impl Default for AWSTimestamp {
     }
 }
 
-impl std::ops::Add<Duration> for AWSTimestamp {
+impl core::ops::Add<Duration> for AWSTimestamp {
     type Output = Self;
     fn add(self, rhs: Duration) -> Self::Output {
         Self(self.0 + rhs)
     }
 }
 
-impl std::ops::AddAssign<Duration> for AWSTimestamp {
+impl core::ops::AddAssign<Duration> for AWSTimestamp {
     fn add_assign(&mut self, rhs: Duration) {
         self.0 += rhs;
     }
 }
 
-impl std::ops::Sub<Duration> for AWSTimestamp {
+impl core::ops::Sub<Duration> for AWSTimestamp {
     type Output = Self;
     fn sub(self, rhs: Duration) -> Self::Output {
         Self(self.0 - rhs)
     }
 }
 
-impl std::ops::SubAssign<Duration> for AWSTimestamp {
+impl core::ops::SubAssign<Duration> for AWSTimestamp {
     fn sub_assign(&mut self, rhs: Duration) {
         self.0 -= rhs;
     }
 }
 
-impl std::ops::Sub<AWSTimestamp> for AWSTimestamp {
+impl core::ops::Sub<AWSTimestamp> for AWSTimestamp {
     type Output = Duration;
     fn sub(self, rhs: AWSTimestamp) -> Self::Output {
         self.0
@@ -125,6 +127,7 @@ impl std::ops::Sub<AWSTimestamp> for AWSTimestamp {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::alloc::string::ToString;
 
     #[test]
     fn test_timestamp_now() {
@@ -145,7 +148,7 @@ mod tests {
     #[test]
     fn test_timestamp_conversion() {
         let now = SystemTime::now();
-        let secs = now.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+        let secs = now.duration_since(UNIX_EPOCH).unwrap().as_secs();
         let ts = AWSTimestamp::from(secs);
         let back_to_secs: u64 = ts.into();
         assert_eq!(secs, back_to_secs);

@@ -1,3 +1,5 @@
+use crate::stdlib::alloc::{borrow::ToOwned, string::String};
+
 impl_new_string!(AWSDateTime);
 impl_new_string!(AWSDate);
 impl_new_string!(AWSTime);
@@ -5,6 +7,8 @@ impl_new_string!(AWSTime);
 #[cfg(test)]
 mod test {
     use super::*;
+
+    use crate::stdlib::alloc::string::ToString;
 
     #[test]
     fn datetime_from_str() {
