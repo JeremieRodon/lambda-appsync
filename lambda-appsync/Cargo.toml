@@ -17,7 +17,6 @@ lambda-appsync-proc = { path = "../lambda-appsync-proc" }
 aws-smithy-types = { workspace = true }
 thiserror = { workspace = true }
 log = { workspace = true }
-uuid = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 hashbrown = { workspace = true }
@@ -43,5 +42,12 @@ std = [
     "env_logger",
     "serde/std",
     "serde_json/std",
+    "uuid",
+    "uuid/std",
     "thiserror/std",
 ]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+uuid = { workspace = true, features = ["v4", "js"] }
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+uuid = { workspace = true, optional = true }
