@@ -20,6 +20,7 @@ log = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 hashbrown = { workspace = true }
+uuid = { workspace = true, optional = true }
 web-time = { workspace = true }
 
 
@@ -46,8 +47,4 @@ std = [
     "uuid/std",
     "thiserror/std",
 ]
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-uuid = { workspace = true, features = ["v4", "js"] }
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-uuid = { workspace = true, optional = true }
+wasm = ["uuid", "uuid/js"]
