@@ -75,6 +75,9 @@
 //! # mod child {fn main() {}}
 //! ```
 
+#[cfg(all(feature = "std", feature = "wasm"))]
+compile_error!("feature \"wasm\" and feature \"std\" cannot be enabled at the same time");
+
 #[cfg(feature = "std")]
 include!("./with_std.rs");
 
