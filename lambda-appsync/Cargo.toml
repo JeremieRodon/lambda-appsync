@@ -37,14 +37,14 @@ aws-sdk-dynamodb = { workspace = true }
 [features]
 default = ["std"]
 std = [
-    "tokio",
-    "lambda_runtime",
-    "aws-config",
-    "env_logger",
+    "dep:tokio",
+    "dep:lambda_runtime",
+    "dep:aws-config",
+    "dep:env_logger",
+    "dep:uuid",
     "serde/std",
     "serde_json/std",
-    "uuid",
     "uuid/std",
     "thiserror/std",
 ]
-wasm = ["uuid", "uuid/js"]
+wasm = ["dep:uuid", "uuid/js"]
