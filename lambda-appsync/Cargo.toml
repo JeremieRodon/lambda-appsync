@@ -14,16 +14,34 @@ categories.workspace = true
 
 [dependencies]
 lambda-appsync-proc = { path = "../lambda-appsync-proc" }
-tokio = { workspace = true }
-lambda_runtime = { workspace = true }
-aws-config = { workspace = true }
 aws-smithy-types = { workspace = true }
-log = { workspace = true }
-env_logger = { workspace = true }
 thiserror = { workspace = true }
+log = { workspace = true }
 uuid = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+hashbrown = { workspace = true }
+web-time = { workspace = true }
+
+
+# Main crate dependencies with the std feature (required for generating a Lambda main function)
+env_logger = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+lambda_runtime = { workspace = true, optional = true }
+aws-config = { workspace = true, optional = true }
+
 
 [dev-dependencies]
 aws-sdk-dynamodb = { workspace = true }
+
+[features]
+default = ["std"]
+std = [
+    "tokio",
+    "lambda_runtime",
+    "aws-config",
+    "env_logger",
+    "serde/std",
+    "serde_json/std",
+    "thiserror/std",
+]

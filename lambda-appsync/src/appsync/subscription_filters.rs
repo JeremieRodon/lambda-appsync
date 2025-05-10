@@ -64,10 +64,13 @@
 //! # }
 //! ```
 
+use crate::stdlib::alloc::string::String;
+
 use serde::Serialize;
 
 use crate::{
-    AWSDate, AWSDateTime, AWSEmail, AWSPhone, AWSTime, AWSTimestamp, AWSUrl, AppsyncError, ID,
+    appsync::types::AppsyncError, AWSDate, AWSDateTime, AWSEmail, AWSPhone, AWSTime, AWSTimestamp,
+    AWSUrl, ID,
 };
 
 /// Private marker trait for types that can be used in filter values
@@ -243,8 +246,8 @@ impl_from_array!(20; 20; (0, v1), (1, v2), (2, v3), (3, v4), (4, v5), (5, v6), (
 #[serde(transparent)]
 pub struct FieldPath(String);
 
-impl std::fmt::Display for FieldPath {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for FieldPath {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
@@ -696,6 +699,7 @@ impl From<Filter> for FilterGroup {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::alloc::string::ToString;
     use serde_json::json;
 
     fn filter_value(f: &FieldFilter) -> serde_json::Value {

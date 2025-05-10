@@ -1,8 +1,11 @@
+use crate::stdlib::alloc::{borrow::ToOwned, string::String};
+
 impl_new_string!(AWSUrl);
 
 #[cfg(test)]
 mod tests {
     use super::AWSUrl;
+    use crate::stdlib::alloc::string::{String, ToString};
 
     #[test]
     fn url_from_string() {

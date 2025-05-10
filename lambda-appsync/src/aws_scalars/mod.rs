@@ -1,5 +1,6 @@
 macro_rules! impl_new_string {
     (base $name:ident) => {
+
         #[doc = "AWS AppSync specific GraphQL scalar type implemented a [String] new-type"]
         #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
         #[serde(transparent)]
@@ -14,7 +15,7 @@ macro_rules! impl_new_string {
     };
     (display $name:ident) => {
         impl core::fmt::Display for $name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 core::fmt::Display::fmt(&self.0, f)
             }
         }

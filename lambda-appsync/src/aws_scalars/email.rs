@@ -1,3 +1,5 @@
+use crate::stdlib::alloc::string::String;
+
 impl_new_string!(no_from AWSEmail);
 
 // An Email address should always be lowercase
@@ -21,6 +23,7 @@ impl From<&str> for AWSEmail {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stdlib::alloc::string::ToString;
 
     #[test]
     fn email_lowercase() {
