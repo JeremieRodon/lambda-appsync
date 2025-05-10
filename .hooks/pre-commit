@@ -26,16 +26,15 @@ if (
 
     # Run clippy
     echo "Running clippy..."
-    cargo clippy --all-targets -- -D warnings || exit 1
-    cargo clippy -p lambda-appsync --no-default-features --features wasm -- -D warnings || exit 1
+    cargo clippy --all-targets --all-features -- -D warnings || exit 1
 
     # Check documentation for modified files
     echo "Checking documentation..."
-    RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --document-private-items || exit 1
+    RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps --document-private-items || exit 1
 
     # Run tests that could be affected by the changes
     echo "Running tests..."
-    cargo test || exit 1
+    cargo test --all-features || exit 1
 ) ; then
     CHECK_STATUS=0
 else

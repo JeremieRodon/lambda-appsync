@@ -20,7 +20,6 @@ log = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 hashbrown = { workspace = true }
-uuid = { workspace = true, optional = true }
 web-time = { workspace = true }
 
 
@@ -29,6 +28,13 @@ env_logger = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 lambda_runtime = { workspace = true, optional = true }
 aws-config = { workspace = true, optional = true }
+
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+uuid = { workspace = true, features = ["v4", "js"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+uuid = { workspace = true }
 
 [dev-dependencies]
 aws-sdk-dynamodb = { workspace = true }
@@ -41,10 +47,8 @@ std = [
     "dep:lambda_runtime",
     "dep:aws-config",
     "dep:env_logger",
-    "dep:uuid",
     "serde/std",
     "serde_json/std",
     "uuid/std",
     "thiserror/std",
 ]
-wasm = ["dep:uuid", "uuid/js"]
