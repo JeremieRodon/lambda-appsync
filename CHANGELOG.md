@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2025-08-24
+
+### Added
+- `FromStr` implementation for all string-like GraphQL scalar types (`ID`, and other AWS scalar types), enabling parsing from string slices:
+  ```rust
+  let id: ID = "123e4567-e89b-12d3-a456-426614174000".parse().unwrap();
+  ```
+
+### Fixed
+- Documentation badge in README now correctly links to the latest version instead of hardcoded v0.1.0
+
+[0.6.1]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.6.0...v0.6.1
+
 ## [0.6.0] - 2025-04-21
 
 ### Added

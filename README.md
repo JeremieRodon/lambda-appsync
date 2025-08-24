@@ -37,7 +37,7 @@ Add this dependency to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lambda-appsync = "0.6.0"
+lambda-appsync = "0.6.1"
 ```
 
 ## Quick Start
