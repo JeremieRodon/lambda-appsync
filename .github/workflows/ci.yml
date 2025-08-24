@@ -28,6 +28,13 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      - name: Pin dependencies
+        run: |
+          # Create lockfile
+          cargo update
+          # Pin base64ct to 1.7.3
+          cargo update -p base64ct --precise 1.7.3
+
       - name: Cargo Format Check
         run: cargo fmt --all -- --check
 
@@ -51,6 +58,13 @@ jobs:
 
       - name: Install Rust 1.81.0
         uses: dtolnay/rust-toolchain@1.81.0
+
+      - name: Pin dependencies
+        run: |
+          # Create lockfile
+          cargo update
+          # Pin base64ct to 1.7.3
+          cargo update -p base64ct --precise 1.7.3
 
       - name: Check MSRV Build
         run: cargo check --all-features

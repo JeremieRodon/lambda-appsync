@@ -17,6 +17,13 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      - name: Pin dependencies
+        run: |
+          # Create lockfile
+          cargo update
+          # Pin base64ct to 1.7.3
+          cargo update -p base64ct --precise 1.7.3
+
       - name: Run Tests
         run: cargo test --all-features --workspace
 
