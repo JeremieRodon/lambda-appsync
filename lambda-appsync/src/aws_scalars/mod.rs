@@ -30,6 +30,12 @@ macro_rules! impl_new_string {
                 Self(value.to_owned())
             }
         }
+        impl core::str::FromStr for $name {
+            type Err = core::convert::Infallible;
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                Ok(Self::from(s))
+            }
+        }
     };
     (into $name:ident) => {
         impl From<$name> for String {

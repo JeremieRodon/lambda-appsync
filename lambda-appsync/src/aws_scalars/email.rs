@@ -18,6 +18,12 @@ impl From<&str> for AWSEmail {
         Self(value.to_lowercase())
     }
 }
+impl core::str::FromStr for AWSEmail {
+    type Err = core::convert::Infallible;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self::from(s))
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;

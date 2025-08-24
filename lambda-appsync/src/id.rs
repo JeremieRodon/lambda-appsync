@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use serde::{Deserialize, Serialize};
 
 /// A custom UUID-based identifier type for AppSync GraphQL objects.
@@ -53,7 +51,29 @@ impl TryFrom<String> for ID {
     /// - The string contains invalid characters
     /// - The string is not of the correct length
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        Ok(ID(uuid::Uuid::parse_str(&value)?))
+        value.parse()
+    }
+}
+
+impl core::str::FromStr for ID {
+    type Err = uuid::Error;
+
+    /// Attempts to create an ID from a string representation of a UUID.
+    ///
+    /// # Example
+    /// ```
+    /// use lambda_appsync::ID;
+    ///
+    /// let id: ID = "123e4567-e89b-12d3-a456-426614174000".parse().unwrap();
+    /// ```
+    ///
+    /// # Errors
+    /// Returns a `uuid::Error` if:
+    /// - The string is not a valid UUID format
+    /// - The string contains invalid characters
+    /// - The string is not of the correct length
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(ID(uuid::Uuid::parse_str(s)?))
     }
 }
 impl core::fmt::Display for ID {
@@ -66,7 +86,7 @@ impl From<ID> for String {
         value.to_string()
     }
 }
-impl Deref for ID {
+impl core::ops::Deref for ID {
     type Target = uuid::Uuid;
 
     fn deref(&self) -> &Self::Target {
@@ -76,6 +96,7 @@ impl Deref for ID {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::ops::Deref;
 
     #[test]
     fn test_id_creation() {
