@@ -12,8 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust 1.81.0
-        uses: dtolnay/rust-toolchain@1.81.0
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
 
@@ -36,8 +36,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust 1.81.0
-        uses: dtolnay/rust-toolchain@1.81.0
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Login to crates.io
         run: cargo login ${{ secrets.CRATES_IO_TOKEN }}
@@ -57,8 +57,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust 1.81.0
-        uses: dtolnay/rust-toolchain@1.81.0
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Login to crates.io
         run: cargo login ${{ secrets.CRATES_IO_TOKEN }}

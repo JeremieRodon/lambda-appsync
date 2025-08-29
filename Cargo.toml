@@ -45,6 +45,6 @@ proc-macro2 = "1.0"
 graphql-parser = "0.4"
 
 # Dev dependencies
-aws-sdk-dynamodb = "1"
-aws-sdk-s3 = "1"
+aws-sdk-dynamodb = "1.59"
+aws-sdk-s3 = "1.59"
 trybuild = "1.0"

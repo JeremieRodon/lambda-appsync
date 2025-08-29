@@ -25,25 +25,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust 1.81.0
-        uses: dtolnay/rust-toolchain@1.81.0
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
 
       - name: Cargo Format Check
-        run: cargo --locked fmt --all -- --check
+        run: cargo fmt --all -- --check
 
       - name: Clippy Check
-        run: cargo --locked clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Doc Check
-        run: RUSTDOCFLAGS="-D warnings" cargo --locked doc --all-features --no-deps --document-private-items
+        run: RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps --document-private-items
 
       - name: Run Tests
-        run: cargo --locked test --all-features
+        run: cargo test --all-features
 
       - name: Build Documentation
-        run: cargo --locked doc --no-deps --document-private-items
+        run: cargo doc --no-deps --document-private-items
+
+  msrv:
+    name: MSRV Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust 1.81.0
+        uses: dtolnay/rust-toolchain@1.81.0
 
       - name: Check MSRV Build
-        run: cargo --locked check --all-features
+        run: cargo check --all-features
