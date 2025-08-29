@@ -20,21 +20,28 @@ git stash push -q --include-untracked --keep-index
 
 # Run checks in a subshell to ensure we always restore the working tree
 if (
+    total_errors=0
     # Check formatting only on staged Rust files
     echo "Checking formatting..."
     cargo fmt --check
+    ((total_errors += $?))
 
     # Run clippy
     echo "Running clippy..."
     cargo clippy --all-targets --all-features -- -D warnings
+    ((total_errors += $?))
 
     # Check documentation for modified files
     echo "Checking documentation..."
     RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps --document-private-items
+    ((total_errors += $?))
 
     # Run tests that could be affected by the changes
     echo "Running tests..."
     cargo test --all-features
+    ((total_errors += $?))
+
+    [ $total_errors -eq 0 ]
 ) ; then
     CHECK_STATUS=0
 else

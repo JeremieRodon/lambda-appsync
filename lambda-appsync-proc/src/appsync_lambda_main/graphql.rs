@@ -172,14 +172,10 @@ impl From<graphql_parser::schema::InputValue<'_, String>> for Field {
 
 struct FieldContext<'a> {
     field: &'a Field,
-    deserialize_only: bool,
 }
 impl<'a> FieldContext<'a> {
-    fn new(field: &'a Field, deserialize_only: bool) -> Self {
-        Self {
-            field,
-            deserialize_only,
-        }
+    fn new(field: &'a Field) -> Self {
+        Self { field }
     }
 }
 impl ToTokens for FieldContext<'_> {
@@ -201,11 +197,6 @@ impl ToTokens for FieldContext<'_> {
             serde_options.push(quote_spanned! {span=>
                 default
             });
-            if !self.deserialize_only {
-                serde_options.push(quote_spanned! {span=>
-                    skip_serializing_if = "Option::is_none"
-                });
-            }
         }
         if !serde_options.is_empty() {
             tokens.extend(quote_spanned! {span=>
@@ -221,7 +212,6 @@ impl ToTokens for FieldContext<'_> {
 struct Structure {
     name: Name,
     fields: Vec<Field>,
-    deserialize_only: bool,
 }
 impl Structure {
     fn apply_type_overrides(
@@ -315,39 +305,23 @@ impl From<graphql_parser::schema::ObjectType<'_, String>> for Structure {
     fn from(value: graphql_parser::schema::ObjectType<'_, String>) -> Self {
         let name = Name::from((value.name, current_span()));
         let fields = value.fields.into_iter().map(Field::from).collect();
-        Self {
-            name,
-            fields,
-            deserialize_only: false,
-        }
+        Self { name, fields }
     }
 }
 impl From<graphql_parser::schema::InputObjectType<'_, String>> for Structure {
     fn from(value: graphql_parser::schema::InputObjectType<'_, String>) -> Self {
         let name = Name::from(value.name);
         let fields = value.fields.into_iter().map(Field::from).collect();
-        Self {
-            name,
-            fields,
-            deserialize_only: true,
-        }
+        Self { name, fields }
     }
 }
 impl ToTokens for Structure {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let span = current_span();
         let struct_name = self.name.to_type_ident();
-        let fields = self
-            .fields
-            .iter()
-            .map(|f| FieldContext::new(f, self.deserialize_only));
-        let serde_derive = if self.deserialize_only {
-            quote_spanned! {span=>::lambda_appsync::serde::Deserialize}
-        } else {
-            quote_spanned! {span=>::lambda_appsync::serde::Serialize, ::lambda_appsync::serde::Deserialize}
-        };
+        let fields = self.fields.iter().map(FieldContext::new);
         tokens.extend(quote_spanned! {span=>
-            #[derive(Debug, Clone, #serde_derive)]
+            #[derive(Debug, Clone, ::lambda_appsync::serde::Serialize, ::lambda_appsync::serde::Deserialize)]
             pub struct #struct_name {
                 #(#fields,)*
             }
