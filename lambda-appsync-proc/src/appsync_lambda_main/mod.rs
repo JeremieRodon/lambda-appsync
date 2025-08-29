@@ -61,7 +61,6 @@ impl AWSClient {
 }
 
 // I suppose this is acceptable for a proc-macro
-#[allow(clippy::large_enum_variant)]
 enum OptionalParameter {
     Batch(bool),
     ExcludeLambdaHandler(bool),

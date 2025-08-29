@@ -6,6 +6,32 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust 1.81.0
+        uses: dtolnay/rust-toolchain@1.81.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Cargo Format Check
+        run: cargo fmt --all -- --check
+
+      - name: Clippy Check
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Doc Check
+        run: RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps --document-private-items
+
+      - name: Run Tests
+        run: cargo test --all-features
+
+      - name: Build Documentation
+        run: cargo doc --no-deps --document-private-items
+
   verify:
     name: Verify Release
     runs-on: ubuntu-latest
@@ -14,20 +40,9 @@ jobs:
 
       - name: Install Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
 
-      - name: Run Tests
-        run: cargo test --all-features --workspace
-
-      - name: Check Formatting
-        run: cargo fmt --all -- --check
-
-      - name: Run Clippy
-        run: cargo clippy --all-features --all-targets -- -D warnings
-
-      - name: Verify Docs
-        run: RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps --document-private-items
+      - name: Check build
+        run: cargo check --all-features
 
   publish-proc:
     name: Publish lambda-appsync-proc
