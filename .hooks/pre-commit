@@ -22,19 +22,19 @@ git stash push -q --include-untracked --keep-index
 if (
     # Check formatting only on staged Rust files
     echo "Checking formatting..."
-    cargo fmt --check
+    cargo --locked fmt --check
 
     # Run clippy
     echo "Running clippy..."
-    cargo clippy --all-targets --all-features -- -D warnings
+    cargo --locked clippy --all-targets --all-features -- -D warnings
 
     # Check documentation for modified files
     echo "Checking documentation..."
-    RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps --document-private-items
+    RUSTDOCFLAGS="-D warnings" cargo --locked doc --all-features --no-deps --document-private-items
 
     # Run tests that could be affected by the changes
     echo "Running tests..."
-    cargo test --all-features
+    cargo --locked test --all-features
 ) ; then
     CHECK_STATUS=0
 else

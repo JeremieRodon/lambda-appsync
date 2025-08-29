@@ -31,19 +31,19 @@ jobs:
           components: rustfmt, clippy
 
       - name: Cargo Format Check
-        run: cargo fmt --all -- --check
+        run: cargo --locked fmt --all -- --check
 
       - name: Clippy Check
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo --locked clippy --all-targets --all-features -- -D warnings
 
       - name: Doc Check
-        run: RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps --document-private-items
+        run: RUSTDOCFLAGS="-D warnings" cargo --locked doc --all-features --no-deps --document-private-items
 
       - name: Run Tests
-        run: cargo test --all-features
+        run: cargo --locked test --all-features
 
       - name: Build Documentation
-        run: cargo doc --no-deps --document-private-items
+        run: cargo --locked doc --no-deps --document-private-items
 
       - name: Check MSRV Build
-        run: cargo check --all-features
+        run: cargo --locked check --all-features
