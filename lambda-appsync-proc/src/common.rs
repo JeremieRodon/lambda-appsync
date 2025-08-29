@@ -78,7 +78,7 @@ impl From<(String, Span)> for Name {
         match CaseType::case(orig.as_str()) {
             CaseType::Camel => {
                 let mut slice_start = 0;
-                for (i, c) in orig.chars().enumerate() {
+                for (i, c) in orig.char_indices() {
                     if c.is_uppercase() {
                         words.push(Word(orig[slice_start..i].to_lowercase()));
                         slice_start = i;
@@ -88,7 +88,7 @@ impl From<(String, Span)> for Name {
             }
             CaseType::Pascal => {
                 let mut slice_start = 0;
-                for (i, c) in orig.chars().enumerate() {
+                for (i, c) in orig.char_indices() {
                     if c.is_uppercase() && i != 0 {
                         words.push(Word(orig[slice_start..i].to_lowercase()));
                         slice_start = i;
