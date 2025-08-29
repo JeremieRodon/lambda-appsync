@@ -12,17 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust Toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust 1.81.0
+        uses: dtolnay/rust-toolchain@1.81.0
         with:
           components: rustfmt, clippy
-
-      - name: Pin dependencies
-        run: |
-          # Create lockfile
-          cargo update
-          # Pin base64ct to 1.7.3
-          cargo update -p base64ct --precise 1.7.3
 
       - name: Run Tests
         run: cargo test --all-features --workspace
@@ -43,8 +36,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust Toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust 1.81.0
+        uses: dtolnay/rust-toolchain@1.81.0
 
       - name: Login to crates.io
         run: cargo login ${{ secrets.CRATES_IO_TOKEN }}
@@ -64,8 +57,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust Toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust 1.81.0
+        uses: dtolnay/rust-toolchain@1.81.0
 
       - name: Login to crates.io
         run: cargo login ${{ secrets.CRATES_IO_TOKEN }}

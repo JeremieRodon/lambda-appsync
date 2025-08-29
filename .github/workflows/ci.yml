@@ -23,17 +23,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust Toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust 1.81.0
+        uses: dtolnay/rust-toolchain@1.81.0
         with:
           components: rustfmt, clippy
-
-      - name: Pin dependencies
-        run: |
-          # Create lockfile
-          cargo update
-          # Pin base64ct to 1.7.3
-          cargo update -p base64ct --precise 1.7.3
 
       - name: Cargo Format Check
         run: cargo fmt --all -- --check
@@ -49,22 +42,6 @@ jobs:
 
       - name: Build Documentation
         run: cargo doc --no-deps --document-private-items
-
-  msrv:
-    name: MSRV Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust 1.81.0
-        uses: dtolnay/rust-toolchain@1.81.0
-
-      - name: Pin dependencies
-        run: |
-          # Create lockfile
-          cargo update
-          # Pin base64ct to 1.7.3
-          cargo update -p base64ct --precise 1.7.3
 
       - name: Check MSRV Build
         run: cargo check --all-features
