@@ -7,6 +7,7 @@ on:
       - "lambda-appsync/**"
       - "lambda-appsync-proc/**"
       - "Cargo.toml"
+      - "Cargo.lock"
       - ".github/workflows/**"
   pull_request:
     branches: [master]
@@ -14,6 +15,7 @@ on:
       - "lambda-appsync/**"
       - "lambda-appsync-proc/**"
       - "Cargo.toml"
+      - "Cargo.lock"
       - ".github/workflows/**"
 
 jobs:
