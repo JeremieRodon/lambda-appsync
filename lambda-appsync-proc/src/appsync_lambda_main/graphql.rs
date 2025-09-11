@@ -195,7 +195,7 @@ impl ToTokens for FieldContext<'_> {
         }
         if field_type.is_optionnal() {
             serde_options.push(quote_spanned! {span=>
-                default
+                default, skip_serializing_if = "Option::is_none"
             });
         }
         if !serde_options.is_empty() {

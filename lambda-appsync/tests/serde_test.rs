@@ -187,4 +187,8 @@ fn test_null_handling() {
 
     let optional_team: OptionalTeam = serde_json::from_value(json.clone()).unwrap();
     assert_eq!(optional_team.team, Some(Team::Rust));
+
+    // Test that null team is not serialized
+    let optional_team = OptionalTeam { team: None };
+    assert_eq!(serde_json::to_value(optional_team).unwrap(), json!({}));
 }
