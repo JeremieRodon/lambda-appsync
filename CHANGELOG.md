@@ -5,7 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.6.1] - 2025-08-24
+## [0.7.0] - 2025-01-26
+
+### Added
+- `Serialize` derivation for GraphQL input types, enabling serialization when building client libraries for the GraphQL API
+- `FromStr` implementation for all string-like GraphQL scalar types (`ID`, and other AWS scalar types), enabling parsing from string slices:
+  ```rust
+  let id: ID = "123e4567-e89b-12d3-a456-426614174000".parse().unwrap();
+  ```
+
+### Fixed
+- MSRV compatibility by pinning base64ct to v1.7.3
+
+### Breaking Changes
+- GraphQL input types now derive both `Serialize` and `Deserialize` instead of only `Deserialize`. This may affect code that had a manual implementation of `Serialize` for input types.
+
+[0.7.0]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.6.0...v0.7.0
+
+## [0.6.1] - 2025-08-24 [YANKED]
 
 ### Added
 - `FromStr` implementation for all string-like GraphQL scalar types (`ID`, and other AWS scalar types), enabling parsing from string slices:
