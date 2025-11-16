@@ -4,7 +4,7 @@ resolver = "2"
 
 [workspace.package]
 version = "0.7.0"
-rust-version = "1.81.0"
+rust-version = "1.82.0"
 edition = "2021"
 authors = ["Jérémie RODON <jeremie.rodon@gmail.com>"]
 license = "MIT"

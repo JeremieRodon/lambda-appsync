@@ -264,7 +264,7 @@ let err = AppsyncError::new("ValidationError", "Invalid email")
 
 ## Minimum Supported Rust Version (MSRV)
 
-This crate requires Rust version 1.81.0 or later.
+This crate requires Rust version 1.82.0 or later.
 
 ## Contributing
 
