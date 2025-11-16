@@ -54,7 +54,7 @@ cargo check
 cargo test
 ```
 
-Make sure `graphql-parser` and other dependencies are working correctly. You’ll need Rust 1.81+.
+Make sure `graphql-parser` and other dependencies are working correctly. You’ll need Rust 1.82+.
 
 #### 3. Make Your Changes
 
