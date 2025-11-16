@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2025-11-16
+
+### Changed
+- Updated lambda_runtime dependency minimum version from 0.12 to 1.0, ensuring use of the version officially supported by the AWS Lambda team
+- Bumped Minimum Supported Rust Version (MSRV) from 1.81.0 to 1.82.0
+
+[0.8.0]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.7.0...v0.8.0
+
 ## [0.7.0] - 2025-01-26
 
 ### Added
