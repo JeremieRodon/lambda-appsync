@@ -368,7 +368,7 @@ impl AppsyncLambdaMain {
         tokens.extend(quote! {
             async fn function_handler(
                 event: ::lambda_appsync::lambda_runtime::LambdaEvent<::lambda_appsync::serde_json::Value>,
-            ) -> Result<#ret_type, ::lambda_appsync::lambda_runtime::Error> {
+            ) -> ::core::result::Result<#ret_type, ::lambda_appsync::lambda_runtime::Error> {
                 ::lambda_appsync::log::debug!("{event:?}");
                 ::lambda_appsync::log::info!("{}", ::lambda_appsync::serde_json::json!(event.payload));
                 Ok(#appsync_handler(::lambda_appsync::serde_json::from_value(event.payload)?).await)
@@ -380,7 +380,7 @@ impl AppsyncLambdaMain {
 
             use ::lambda_appsync::tokio;
             #[tokio::main]
-            async fn main() -> Result<(), ::lambda_appsync::lambda_runtime::Error> {
+            async fn main() -> ::core::result::Result<(), ::lambda_appsync::lambda_runtime::Error> {
                 ::lambda_appsync::env_logger::Builder::from_env(
                     ::lambda_appsync::env_logger::Env::default()
                         .default_filter_or("info,tracing::span=warn")
