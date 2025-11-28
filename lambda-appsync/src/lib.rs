@@ -199,6 +199,17 @@ pub struct AppsyncIdentityIam {
 /// Identity information for OIDC-authenticated requests.
 #[derive(Debug, Deserialize)]
 pub struct AppsyncIdentityOidc {
+    /// The claims
+    pub claims: AppsyncIdentityOidcClaims,
+    /// The subject (usually the user identifier)
+    pub sub: String,
+    /// Token audience
+    pub issuer: String,
+}
+
+/// Claims information for OIDC-authenticated requests.
+#[derive(Debug, Deserialize)]
+pub struct AppsyncIdentityOidcClaims {
     /// The issuer of the token
     pub iss: String,
     /// The subject (usually the user identifier)
@@ -281,10 +292,10 @@ pub struct AppsyncEventInfo<O> {
     pub operation: O,
     /// Raw GraphQL selection set as a string
     #[serde(rename = "selectionSetGraphQL")]
-    pub selection_set_graphql: String,
+    pub selection_set_graphql: Option<String>,
     /// List of selected field paths in the GraphQL query
     #[serde(rename = "selectionSetList")]
-    pub selection_set_list: Vec<String>,
+    pub selection_set_list: Option<Vec<String>>,
     /// Variables passed to the GraphQL operation
     pub variables: HashMap<String, Value>,
 }
