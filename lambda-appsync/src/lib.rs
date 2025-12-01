@@ -292,10 +292,10 @@ pub struct AppsyncEventInfo<O> {
     pub operation: O,
     /// Raw GraphQL selection set as a string
     #[serde(rename = "selectionSetGraphQL")]
-    pub selection_set_graphql: Option<String>,
+    pub selection_set_graphql: String,
     /// List of selected field paths in the GraphQL query
     #[serde(rename = "selectionSetList")]
-    pub selection_set_list: Option<Vec<String>>,
+    pub selection_set_list: Vec<String>,
     /// Variables passed to the GraphQL operation
     pub variables: HashMap<String, Value>,
 }
