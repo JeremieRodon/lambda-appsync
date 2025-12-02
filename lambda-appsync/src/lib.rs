@@ -199,6 +199,17 @@ pub struct AppsyncIdentityIam {
 /// Identity information for OIDC-authenticated requests.
 #[derive(Debug, Deserialize)]
 pub struct AppsyncIdentityOidc {
+    /// The claims
+    pub claims: AppsyncIdentityOidcClaims,
+    /// The subject (usually the user identifier)
+    pub sub: String,
+    /// Token audience
+    pub issuer: String,
+}
+
+/// Claims information for OIDC-authenticated requests.
+#[derive(Debug, Deserialize)]
+pub struct AppsyncIdentityOidcClaims {
     /// The issuer of the token
     pub iss: String,
     /// The subject (usually the user identifier)
