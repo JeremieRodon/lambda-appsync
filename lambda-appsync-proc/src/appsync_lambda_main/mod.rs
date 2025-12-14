@@ -70,6 +70,7 @@ enum OptionalParameter {
     ExcludeAppsyncOperations(bool),
     OnlyAppsyncOperations(bool),
     Hook(Ident),
+    LogInit(Ident),
     TypeOverride(TypeOverride),
     NameOverride(NameOverride),
 }
@@ -94,6 +95,7 @@ impl Parse for OptionalParameter {
                 input.parse::<LitBool>()?.value(),
             )),
             "hook" => Ok(Self::Hook(input.parse()?)),
+            "log_init" => Ok(Self::LogInit(input.parse()?)),
             "type_override" => Ok(Self::TypeOverride(input.parse()?)),
             "name_override" => Ok(Self::NameOverride(input.parse()?)),
             // Deprecated options
@@ -148,6 +150,7 @@ struct OptionalParameters {
     appsync_operations: bool,
     lambda_handler: bool,
     hook: Option<Ident>,
+    log_init: Option<Ident>,
     tos: TypeOverrides,
     nos: NameOverrides,
 }
@@ -159,6 +162,7 @@ impl Default for OptionalParameters {
             appsync_operations: true,
             lambda_handler: true,
             hook: None,
+            log_init: None,
             tos: TypeOverrides::new(),
             nos: NameOverrides::new(),
         }
@@ -188,6 +192,9 @@ impl OptionalParameters {
             }
             OptionalParameter::Hook(ident) => {
                 self.hook.replace(ident);
+            }
+            OptionalParameter::LogInit(ident) => {
+                self.log_init.replace(ident);
             }
             OptionalParameter::TypeOverride(to) => {
                 // Retrieve the entry corresponding to `Type.field`
@@ -327,8 +334,11 @@ impl AppsyncLambdaMain {
             quote! {}
         };
         tokens.extend(quote! {
+            #[cfg_attr(feature = "tracing", ::lambda_appsync::tracing::instrument(fields(operation = ?event.info.operation)))]
             async fn appsync_handler(event: ::lambda_appsync::AppsyncEvent<Operation>) -> ::lambda_appsync::AppsyncResponse {
+                #[cfg(feature = "env_logger")]
                 ::lambda_appsync::log::info!("event={event:?}");
+                #[cfg(feature = "env_logger")]
                 ::lambda_appsync::log::info!("operation={:?}", event.info.operation);
 
                 #call_hook
@@ -357,6 +367,37 @@ impl AppsyncLambdaMain {
         }
     }
 
+    fn default_log_init() -> TokenStream2 {
+        quote! {
+            #[cfg(feature = "env_logger")]
+            ::lambda_appsync::env_logger::Builder::from_env(
+                ::lambda_appsync::env_logger::Env::default()
+                    .default_filter_or("info,tracing::span=warn")
+                    .default_write_style_or("never"),
+            )
+            .format_timestamp_micros()
+            .init();
+
+            #[cfg(feature = "tracing")]
+            ::lambda_appsync::tracing_subscriber::fmt()
+                    .json()
+                    .with_env_filter(
+                        ::lambda_appsync::tracing_subscriber::EnvFilter::from_default_env()
+                            .add_directive(tracing::Level::INFO.into()),
+                    )
+                    // this needs to be set to remove duplicated information in the log.
+                    .with_current_span(false)
+                    // this needs to be set to false, otherwise ANSI color codes will
+                    // show up in a confusing manner in CloudWatch logs.
+                    .with_ansi(false)
+                    // disabling time is handy because CloudWatch will add the ingestion time.
+                    .without_time()
+                    // remove the name of the function from every log entry
+                    .with_target(false)
+                    .init();
+        }
+    }
+
     fn lambda_main(&self, tokens: &mut TokenStream2) {
         let (config_init, config_getter) = if !self.aws_clients.is_empty() {
             (AWSClient::aws_config_init(), AWSClient::aws_config_getter())
@@ -377,12 +418,28 @@ impl AppsyncLambdaMain {
             )
         };
 
+        let log_init = if let Some(ref log_init) = self.options.log_init {
+            quote_spanned! {log_init.span()=>
+                mod _check_sig {
+                    #[inline(always)]
+                    pub(super) fn call_log_init<F: Fn() -> ()>(f: F) {f()}
+                }
+                _check_sig::call_log_init(#log_init);
+            }
+        } else {
+            Self::default_log_init()
+        };
+
         tokens.extend(quote! {
+            #[cfg_attr(feature = "tracing", ::lambda_appsync::tracing::instrument(skip(event), fields(req_id = %event.context.request_id)))]
             async fn function_handler(
                 event: ::lambda_appsync::lambda_runtime::LambdaEvent<::lambda_appsync::serde_json::Value>,
             ) -> ::core::result::Result<#ret_type, ::lambda_appsync::lambda_runtime::Error> {
+                #[cfg(feature = "env_logger")]
                 ::lambda_appsync::log::debug!("{event:?}");
+                #[cfg(feature = "env_logger")]
                 ::lambda_appsync::log::info!("{}", ::lambda_appsync::serde_json::json!(event.payload));
+
                 Ok(#appsync_handler(::lambda_appsync::serde_json::from_value(event.payload)?).await)
             }
 
@@ -393,13 +450,7 @@ impl AppsyncLambdaMain {
             use ::lambda_appsync::tokio;
             #[tokio::main]
             async fn main() -> ::core::result::Result<(), ::lambda_appsync::lambda_runtime::Error> {
-                ::lambda_appsync::env_logger::Builder::from_env(
-                    ::lambda_appsync::env_logger::Env::default()
-                        .default_filter_or("info,tracing::span=warn")
-                        .default_write_style_or("never"),
-                )
-                .format_timestamp_micros()
-                .init();
+                #log_init
 
                 #config_init
 
