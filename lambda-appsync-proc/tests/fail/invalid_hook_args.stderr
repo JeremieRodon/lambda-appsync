@@ -1,0 +1,20 @@
+error[E0631]: type mismatch in function arguments
+ --> tests/fail/invalid_hook_args.rs:6:63
+  |
+3 |     async fn verify_request(_event: &Operation) -> Option<AppsyncResponse> {
+  |     ---------------------------------------------------------------------- found signature defined here
+...
+6 |     appsync_lambda_main!("../../../../schema.graphql", hook = verify_request);
+  |                                                               ^^^^^^^^^^^^^^ expected due to this
+  |
+  = note: expected function signature `fn(&AppsyncEvent<no_run::Operation>) -> _`
+             found function signature `fn(&no_run::Operation) -> _`
+note: required by a bound in `call_hook`
+ --> tests/fail/invalid_hook_args.rs:6:63
+  |
+6 |     appsync_lambda_main!("../../../../schema.graphql", hook = verify_request);
+  |                                                               ^^^^^^^^^^^^^^ required by this bound in `call_hook`
+help: consider wrapping the function in a closure
+  |
+6 |     appsync_lambda_main!("../../../../schema.graphql", hook = |arg0: &AppsyncEvent<no_run::Operation>| verify_request(/* &no_run::Operation */));
+  |                                                               ++++++++++++++++++++++++++++++++++++++++               ++++++++++++++++++++++++++

@@ -307,7 +307,19 @@ impl AppsyncLambdaMain {
     fn appsync_event_handler(&self, tokens: &mut TokenStream2) {
         let call_hook = if let Some(ref hook) = self.options.hook {
             quote_spanned! {hook.span()=>
-                if let Some(resp) = #hook(&event).await {
+                mod _check_sig {
+                    use super::Operation;
+                    use ::lambda_appsync::{AppsyncEvent, AppsyncResponse};
+                    use ::core::future::Future;
+                    #[inline(always)]
+                    pub(super) async fn call_hook<'a, Fut, H>(hook: H, event: &'a AppsyncEvent<Operation>) -> Option<AppsyncResponse>
+                    where
+                        Fut: Future<Output = Option<AppsyncResponse>>,
+                        H: Fn(&'a AppsyncEvent<Operation>) -> Fut {
+                        hook(event).await
+                    }
+                }
+                if let Some(resp) = _check_sig::call_hook(#hook, &event).await{
                     return resp;
                 }
             }

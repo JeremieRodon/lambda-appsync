@@ -1,0 +1,13 @@
+error[E0271]: expected `impl Future<Output = Option<String>>` to be a future that resolves to `Option<AppsyncResponse>`, but it resolves to `Option<String>`
+ --> tests/fail/invalid_hook_ret.rs:6:63
+  |
+6 |     appsync_lambda_main!("../../../../schema.graphql", hook = verify_request);
+  |                                                               ^^^^^^^^^^^^^^ expected `Option<AppsyncResponse>`, found `Option<String>`
+  |
+  = note: expected enum `std::option::Option<AppsyncResponse>`
+             found enum `std::option::Option<std::string::String>`
+note: required by a bound in `call_hook`
+ --> tests/fail/invalid_hook_ret.rs:6:63
+  |
+6 |     appsync_lambda_main!("../../../../schema.graphql", hook = verify_request);
+  |                                                               ^^^^^^^^^^^^^^ required by this bound in `call_hook`

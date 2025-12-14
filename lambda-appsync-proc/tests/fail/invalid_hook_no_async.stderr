@@ -1,0 +1,12 @@
+error[E0277]: `std::option::Option<AppsyncResponse>` is not a future
+ --> tests/fail/invalid_hook_no_async.rs:6:63
+  |
+6 |     appsync_lambda_main!("../../../../schema.graphql", hook = verify_request);
+  |                                                               ^^^^^^^^^^^^^^ `std::option::Option<AppsyncResponse>` is not a future
+  |
+  = help: the trait `Future` is not implemented for `std::option::Option<AppsyncResponse>`
+note: required by a bound in `call_hook`
+ --> tests/fail/invalid_hook_no_async.rs:6:63
+  |
+6 |     appsync_lambda_main!("../../../../schema.graphql", hook = verify_request);
+  |                                                               ^^^^^^^^^^^^^^ required by this bound in `call_hook`
