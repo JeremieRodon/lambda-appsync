@@ -408,8 +408,6 @@ impl AppsyncLambdaMain {
                     // this needs to be set to false, otherwise ANSI color codes will
                     // show up in a confusing manner in CloudWatch logs.
                     .with_ansi(false)
-                    // disabling time is handy because CloudWatch will add the ingestion time.
-                    .without_time()
                     // remove the name of the function from every log entry
                     .with_target(false)
                     .init();
