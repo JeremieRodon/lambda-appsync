@@ -312,17 +312,16 @@ impl Parse for AppsyncLambdaMain {
 
 impl AppsyncLambdaMain {
     fn appsync_event_handler(&self, tokens: &mut TokenStream2) {
-        #[cfg(feature = "tracing")]
-        tokens.extend(quote! {
-            #[::lambda_appsync::tracing::instrument(fields(operation = ?event.info.operation))]
-        });
-
         #[allow(unused_mut)]
         let mut log_lines = proc_macro2::TokenStream::new();
         #[cfg(feature = "env_logger")]
         log_lines.extend(quote! {
             ::lambda_appsync::log::info!("event={event:?}");
             ::lambda_appsync::log::info!("operation={:?}", event.info.operation);
+        });
+        #[cfg(feature = "tracing")]
+        log_lines.extend(quote! {
+            ::lambda_appsync::tracing::info!("event={event:?}");
         });
 
         let call_hook = if let Some(ref hook) = self.options.hook {
@@ -346,6 +345,11 @@ impl AppsyncLambdaMain {
         } else {
             quote! {}
         };
+
+        #[cfg(feature = "tracing")]
+        tokens.extend(quote! {
+            #[::lambda_appsync::tracing::instrument(skip(event), fields(operation = ?event.info.operation))]
+        });
 
         tokens.extend(quote! {
             async fn appsync_handler(event: ::lambda_appsync::AppsyncEvent<Operation>) -> ::lambda_appsync::AppsyncResponse {
@@ -436,6 +440,11 @@ impl AppsyncLambdaMain {
         log_lines.extend(quote! {
             ::lambda_appsync::log::debug!("{event:?}");
             ::lambda_appsync::log::info!("{}", ::lambda_appsync::serde_json::json!(event.payload));
+        });
+        #[cfg(feature = "tracing")]
+        log_lines.extend(quote! {
+            ::lambda_appsync::tracing::debug!("{event:?}");
+            ::lambda_appsync::tracing::info!({payload = %::lambda_appsync::serde_json::json!(event.payload)});
         });
 
         tokens.extend(quote! {
