@@ -383,7 +383,7 @@ impl AppsyncLambdaMain {
                     .json()
                     .with_env_filter(
                         ::lambda_appsync::tracing_subscriber::EnvFilter::from_default_env()
-                            .add_directive(tracing::Level::INFO.into()),
+                            .add_directive(::lambda_appsync::tracing::Level::INFO.into()),
                     )
                     // this needs to be set to remove duplicated information in the log.
                     .with_current_span(false)
