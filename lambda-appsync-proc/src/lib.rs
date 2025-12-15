@@ -29,6 +29,7 @@ use proc_macro::TokenStream;
 ///
 /// - `batch = bool`: Enable/disable batch request handling (default: true)
 /// - `hook = fn_name`: Add a custom hook function for request validation/auth
+/// - `log_init = fn_name`: Use a custom log initialization function instead of the default one
 /// - `exclude_lambda_handler = bool`: Skip generation of Lambda handler code
 /// - `only_lambda_handler = bool`: Only generate Lambda handler code
 /// - `exclude_appsync_types = bool`: Skip generation of GraphQL type definitions
@@ -205,6 +206,70 @@ use proc_macro::TokenStream;
 /// ```
 /// Note that when using `name_override`, the macro does not automatically change the case:
 /// you are responsible to provide the appropriate casing or Clippy will complain.
+///
+/// ## Use a custom log initialization function:
+///
+/// ### Feature `env_logger` (default)
+///
+/// By default, `lambda_appsync` exposes and uses `log` and `env_logger`. You can override the
+/// initialization code if you wish:
+///
+/// ```no_run
+/// # mod sub {
+/// // This is in fact equivalent to the default initialization code
+/// fn log_init_fct() {
+///     use lambda_appsync::env_logger;
+///     env_logger::Builder::from_env(
+///         env_logger::Env::default()
+///         // Default log level is info, expect tracing::span is warn
+///         .default_filter_or("info,tracing::span=warn")
+///         .default_write_style_or("never"),
+///     )
+///     // Format timestamps with microseconds
+///     .format_timestamp_micros()
+///     .init();
+/// }
+/// lambda_appsync::appsync_lambda_main!(
+///     "schema.graphql",
+///     log_init = log_init_fct
+/// );
+/// # }
+/// # fn main() {}
+/// ```
+///
+/// ### Feature `tracing`
+///
+/// Alternatively, you can use the `tracing` feature so `lambda_appsync` exposes and uses `tracing` and `tracing-subscriber`
+///
+/// ```no_run
+/// # mod sub {
+/// // This is in fact equivalent to the default initialization code
+/// fn tracing_init_fct() {
+///     use lambda_appsync::{tracing, tracing_subscriber};
+///     tracing_subscriber::fmt()
+///         .json()
+///         .with_env_filter(
+///             tracing_subscriber::EnvFilter::from_default_env()
+///                 .add_directive(tracing::Level::INFO.into()),
+///         )
+///         // this needs to be set to remove duplicated information in the log.
+///         .with_current_span(false)
+///         // this needs to be set to false, otherwise ANSI color codes will
+///         // show up in a confusing manner in CloudWatch logs.
+///         .with_ansi(false)
+///         // disabling time is handy because CloudWatch will add the ingestion time.
+///         .without_time()
+///         // remove the name of the function from every log entry
+///         .with_target(false)
+///         .init();
+/// }
+/// lambda_appsync::appsync_lambda_main!(
+///     "schema.graphql",
+///     log_init = tracing_init_fct
+/// );
+/// # }
+/// # fn main() {}
+/// ```
 ///
 /// ## Disable batch processing:
 /// ```no_run
