@@ -194,9 +194,6 @@ use proc_macro::TokenStream;
 ///     name_override = Player.name: email,
 ///     // Override team `PYTHON` to be `Snake` (instead of `Python`)
 ///     name_override = Team.PYTHON: Snake,
-///     name_override = WeirdFieldNames.await: no_await,
-///     name_override = WeirdFieldNames.crate: no_crate,
-///     name_override = WeirdFieldNames.u8: no_u8,
 ///     // MUST also override ALL the operations return type !!!
 ///     type_override = Query.players: NewPlayer,
 ///     type_override = Query.player: NewPlayer,
