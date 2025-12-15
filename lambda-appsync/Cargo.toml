@@ -13,7 +13,7 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
-lambda-appsync-proc = { path = "../lambda-appsync-proc" }
+lambda-appsync-proc = { path = "../lambda-appsync-proc", default-features = false }
 tokio = { workspace = true }
 lambda_runtime = { workspace = true }
 aws-config = { workspace = true }
@@ -36,5 +36,5 @@ aws-sdk-dynamodb = { workspace = true }
 
 [features]
 default = ["env_logger"]
-env_logger = ["dep:log", "dep:env_logger"]
-tracing = ["dep:tracing", "dep:tracing-subscriber"]
+env_logger = ["dep:log", "dep:env_logger", "lambda-appsync-proc/env_logger"]
+tracing = ["dep:tracing", "dep:tracing-subscriber", "lambda-appsync-proc/tracing"]

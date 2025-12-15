@@ -971,7 +971,20 @@ impl GraphQLSchema {
         let subscription_field_execute_match_arm = self
             .subscriptions
             .execute_match_arm_iter(OperationKind::Subscription);
+
         let span = current_span();
+
+        #[allow(unused_mut)]
+        let mut log_lines = proc_macro2::TokenStream::new();
+        #[cfg(feature = "env_logger")]
+        log_lines.extend(quote_spanned! {span=>
+            ::lambda_appsync::log::error!("{e}");
+        });
+        #[cfg(feature = "tracing")]
+        log_lines.extend(quote_spanned! {span=>
+            ::lambda_appsync::tracing::error!("{e}");
+        });
+
         tokens.extend(quote_spanned! {span=>
             impl Operation {
                 async fn execute(self,
@@ -980,7 +993,7 @@ impl GraphQLSchema {
                     match self._execute(event).await {
                         ::core::result::Result::Ok(v) => v.into(),
                         ::core::result::Result::Err(e) => {
-                            ::lambda_appsync::log::error!("{e}");
+                            #log_lines
                             e.into()
                         }
                     }

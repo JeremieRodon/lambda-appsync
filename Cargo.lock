@@ -1248,6 +1248,7 @@ dependencies = [
  "quote",
  "serde",
  "syn 2.0.52",
+ "tracing",
  "trybuild",
 ]
 
