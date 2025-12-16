@@ -504,12 +504,12 @@ impl AppsyncLambdaMain {
         let log_init = TokenStream2::new();
 
         #[allow(unused_mut)]
-        let mut bing_in_scope = TokenStream2::new();
-        bing_in_scope.extend(quote! {
+        let mut bring_in_scope = TokenStream2::new();
+        bring_in_scope.extend(quote! {
             use ::lambda_appsync::tokio;
         });
         #[cfg(feature = "tracing")]
-        bing_in_scope.extend(quote! {
+        bring_in_scope.extend(quote! {
             use ::lambda_appsync::tracing;
         });
 
@@ -519,7 +519,7 @@ impl AppsyncLambdaMain {
 
             #(#aws_client_getters)*
 
-            #bing_in_scope
+            #bring_in_scope
 
             #[tokio::main]
             async fn main() -> ::core::result::Result<(), ::lambda_appsync::lambda_runtime::Error> {
