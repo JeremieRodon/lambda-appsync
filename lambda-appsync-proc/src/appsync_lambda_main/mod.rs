@@ -476,8 +476,12 @@ impl AppsyncLambdaMain {
             let mut default_log_init = proc_macro2::TokenStream::new();
             #[cfg(feature = "env_logger")]
             default_log_init.extend(Self::default_env_logger_init());
-            #[cfg(feature = "tracing")]
+            // The code initializing tracing fails if the env_logger initialization already happened
+            #[cfg(all(feature = "tracing", not(any(feature = "env_logger"))))]
             default_log_init.extend(Self::default_tracing_init());
+            // Future default inits can be inserted here like that for feature "fastrace" (for example):
+            // #[cfg(all(feature = "fastrace", not(any(feature = "env_logger", feature = "tracing"))))]
+            // default_log_init.extend(Self::default_fastrace_init());
             default_log_init
         };
 
