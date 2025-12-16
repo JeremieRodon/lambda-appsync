@@ -30,6 +30,7 @@ use proc_macro::TokenStream;
 /// - `batch = bool`: Enable/disable batch request handling (default: true)
 /// - `hook = fn_name`: Add a custom hook function for request validation/auth
 /// - (feature: `log`) `log_init = fn_name`: Use a custom log initialization function instead of the default one
+/// - (feature: `log`) `event_logging = bool`: If true, the macro will generate code to dump the entire event in the logs (default: `true`)
 /// - `exclude_lambda_handler = bool`: Skip generation of Lambda handler code
 /// - `only_lambda_handler = bool`: Only generate Lambda handler code
 /// - `exclude_appsync_types = bool`: Skip generation of GraphQL type definitions
