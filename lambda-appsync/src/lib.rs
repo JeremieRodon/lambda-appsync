@@ -108,10 +108,11 @@ pub use serde;
 pub use serde_json;
 pub use tokio;
 
+#[cfg(feature = "log")]
+pub use log;
+
 #[cfg(feature = "env_logger")]
 pub use env_logger;
-#[cfg(feature = "env_logger")]
-pub use log;
 
 #[cfg(feature = "tracing")]
 pub use tracing;

@@ -29,7 +29,7 @@ use proc_macro::TokenStream;
 ///
 /// - `batch = bool`: Enable/disable batch request handling (default: true)
 /// - `hook = fn_name`: Add a custom hook function for request validation/auth
-/// - `log_init = fn_name`: Use a custom log initialization function instead of the default one
+/// - (feature: `log`) `log_init = fn_name`: Use a custom log initialization function instead of the default one
 /// - `exclude_lambda_handler = bool`: Skip generation of Lambda handler code
 /// - `only_lambda_handler = bool`: Only generate Lambda handler code
 /// - `exclude_appsync_types = bool`: Skip generation of GraphQL type definitions
@@ -239,7 +239,7 @@ use proc_macro::TokenStream;
 ///
 /// ### Feature `tracing`
 ///
-/// Alternatively, you can use the `tracing` feature so `lambda_appsync` exposes and uses `tracing` and `tracing-subscriber`
+/// Alternatively, you can use the `tracing` feature so `lambda_appsync` exposes and uses `log`, `tracing` and `tracing-subscriber`
 ///
 /// ```no_run
 /// # mod sub {

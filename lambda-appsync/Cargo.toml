@@ -36,5 +36,6 @@ aws-sdk-dynamodb = { workspace = true }
 
 [features]
 default = ["env_logger"]
-env_logger = ["dep:log", "dep:env_logger", "lambda-appsync-proc/env_logger"]
-tracing = ["dep:tracing", "dep:tracing-subscriber", "lambda-appsync-proc/tracing"]
+env_logger = ["log", "dep:env_logger", "lambda-appsync-proc/env_logger"]
+tracing = ["log", "dep:tracing", "dep:tracing-subscriber", "lambda-appsync-proc/tracing"]
+log = ["dep:log", "lambda-appsync-proc/log"]

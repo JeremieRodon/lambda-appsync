@@ -70,6 +70,7 @@ enum OptionalParameter {
     ExcludeAppsyncOperations(bool),
     OnlyAppsyncOperations(bool),
     Hook(Ident),
+    #[cfg(feature = "log")]
     LogInit(Ident),
     TypeOverride(TypeOverride),
     NameOverride(NameOverride),
@@ -95,6 +96,7 @@ impl Parse for OptionalParameter {
                 input.parse::<LitBool>()?.value(),
             )),
             "hook" => Ok(Self::Hook(input.parse()?)),
+            #[cfg(feature = "log")]
             "log_init" => Ok(Self::LogInit(input.parse()?)),
             "type_override" => Ok(Self::TypeOverride(input.parse()?)),
             "name_override" => Ok(Self::NameOverride(input.parse()?)),
@@ -150,6 +152,7 @@ struct OptionalParameters {
     appsync_operations: bool,
     lambda_handler: bool,
     hook: Option<Ident>,
+    #[cfg(feature = "log")]
     log_init: Option<Ident>,
     tos: TypeOverrides,
     nos: NameOverrides,
@@ -162,6 +165,7 @@ impl Default for OptionalParameters {
             appsync_operations: true,
             lambda_handler: true,
             hook: None,
+            #[cfg(feature = "log")]
             log_init: None,
             tos: TypeOverrides::new(),
             nos: NameOverrides::new(),
@@ -193,6 +197,7 @@ impl OptionalParameters {
             OptionalParameter::Hook(ident) => {
                 self.hook.replace(ident);
             }
+            #[cfg(feature = "log")]
             OptionalParameter::LogInit(ident) => {
                 self.log_init.replace(ident);
             }
@@ -314,14 +319,10 @@ impl AppsyncLambdaMain {
     fn appsync_event_handler(&self, tokens: &mut TokenStream2) {
         #[allow(unused_mut)]
         let mut log_lines = proc_macro2::TokenStream::new();
-        #[cfg(feature = "env_logger")]
+        #[cfg(feature = "log")]
         log_lines.extend(quote! {
             ::lambda_appsync::log::info!("event={event:?}");
             ::lambda_appsync::log::info!("operation={:?}", event.info.operation);
-        });
-        #[cfg(feature = "tracing")]
-        log_lines.extend(quote! {
-            ::lambda_appsync::tracing::info!("event={event:?}");
         });
 
         let call_hook = if let Some(ref hook) = self.options.hook {
@@ -434,15 +435,10 @@ impl AppsyncLambdaMain {
 
         #[allow(unused_mut)]
         let mut log_lines = proc_macro2::TokenStream::new();
-        #[cfg(feature = "env_logger")]
+        #[cfg(feature = "log")]
         log_lines.extend(quote! {
             ::lambda_appsync::log::debug!("{event:?}");
             ::lambda_appsync::log::info!("{}", ::lambda_appsync::serde_json::json!(event.payload));
-        });
-        #[cfg(feature = "tracing")]
-        log_lines.extend(quote! {
-            ::lambda_appsync::tracing::debug!("{event:?}");
-            ::lambda_appsync::tracing::info!({payload = %::lambda_appsync::serde_json::json!(event.payload)});
         });
 
         tokens.extend(quote! {
@@ -463,6 +459,7 @@ impl AppsyncLambdaMain {
         };
         let aws_client_getters = self.aws_clients.iter().map(|ac| ac.aws_client_getter());
 
+        #[cfg(feature = "log")]
         let log_init = if let Some(ref log_init) = self.options.log_init {
             quote_spanned! {log_init.span()=>
                 mod _check_sig {
@@ -484,6 +481,8 @@ impl AppsyncLambdaMain {
             // default_log_init.extend(Self::default_fastrace_init());
             default_log_init
         };
+        #[cfg(not(feature = "log"))]
+        let log_init = TokenStream2::new();
 
         #[allow(unused_mut)]
         let mut bing_in_scope = TokenStream2::new();

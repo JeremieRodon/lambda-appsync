@@ -976,13 +976,9 @@ impl GraphQLSchema {
 
         #[allow(unused_mut)]
         let mut log_lines = proc_macro2::TokenStream::new();
-        #[cfg(feature = "env_logger")]
+        #[cfg(feature = "log")]
         log_lines.extend(quote_spanned! {span=>
             ::lambda_appsync::log::error!("{e}");
-        });
-        #[cfg(feature = "tracing")]
-        log_lines.extend(quote_spanned! {span=>
-            ::lambda_appsync::tracing::error!("{e}");
         });
 
         tokens.extend(quote_spanned! {span=>
