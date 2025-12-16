@@ -13,17 +13,29 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
-lambda-appsync-proc = { path = "../lambda-appsync-proc" }
+lambda-appsync-proc = { path = "../lambda-appsync-proc", default-features = false }
 tokio = { workspace = true }
 lambda_runtime = { workspace = true }
 aws-config = { workspace = true }
 aws-smithy-types = { workspace = true }
-log = { workspace = true }
-env_logger = { workspace = true }
 thiserror = { workspace = true }
 uuid = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
+# For feature env_logger (defautl)
+log = { workspace = true, optional = true  }
+env_logger = { workspace = true, optional = true }
+
+# For feature tracing
+tracing = { workspace = true, optional = true  }
+tracing-subscriber = { workspace = true, optional = true  }
+
 [dev-dependencies]
 aws-sdk-dynamodb = { workspace = true }
+
+[features]
+default = ["env_logger"]
+env_logger = ["log", "dep:env_logger", "lambda-appsync-proc/env_logger"]
+tracing = ["log", "dep:tracing", "dep:tracing-subscriber", "lambda-appsync-proc/tracing"]
+log = ["dep:log", "lambda-appsync-proc/log"]

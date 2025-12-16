@@ -1,0 +1,11 @@
+error[E0271]: expected `custom_log_init` to be a fn item that returns `()`, but it returns `&str`
+ --> tests/fail/invalid_log_init_ret.rs:7:67
+  |
+7 |     appsync_lambda_main!("../../../../schema.graphql", log_init = custom_log_init);
+  |                                                                   ^^^^^^^^^^^^^^^ expected `()`, found `&str`
+  |
+note: required by a bound in `call_log_init`
+ --> tests/fail/invalid_log_init_ret.rs:7:67
+  |
+7 |     appsync_lambda_main!("../../../../schema.graphql", log_init = custom_log_init);
+  |                                                                   ^^^^^^^^^^^^^^^ required by this bound in `call_log_init`
