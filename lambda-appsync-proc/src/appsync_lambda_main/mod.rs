@@ -170,7 +170,7 @@ impl Default for OptionalParameters {
             hook: None,
             log_init: None,
             #[cfg(feature = "log")]
-            event_logging: true,
+            event_logging: false,
             tos: TypeOverrides::new(),
             nos: NameOverrides::new(),
         }
@@ -329,7 +329,7 @@ impl AppsyncLambdaMain {
         #[cfg(feature = "log")]
         if self.options.event_logging {
             log_lines.extend(quote! {
-                ::lambda_appsync::log::info!("event={event:?}");
+                ::lambda_appsync::log::debug!("event={event:?}");
             });
         }
         #[cfg(feature = "log")]
@@ -450,8 +450,7 @@ impl AppsyncLambdaMain {
         #[cfg(feature = "log")]
         if self.options.event_logging {
             log_lines.extend(quote! {
-                ::lambda_appsync::log::debug!("{event:?}");
-                ::lambda_appsync::log::info!("{}", ::lambda_appsync::serde_json::json!(event.payload));
+                ::lambda_appsync::log::debug!("{}", ::lambda_appsync::serde_json::json!(event.payload));
             });
         }
 
