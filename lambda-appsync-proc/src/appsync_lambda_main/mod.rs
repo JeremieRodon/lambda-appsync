@@ -70,7 +70,6 @@ enum OptionalParameter {
     ExcludeAppsyncOperations(bool),
     OnlyAppsyncOperations(bool),
     Hook(Ident),
-    #[cfg(feature = "log")]
     LogInit(Ident),
     #[cfg(feature = "log")]
     EventLogging(bool),
@@ -98,7 +97,6 @@ impl Parse for OptionalParameter {
                 input.parse::<LitBool>()?.value(),
             )),
             "hook" => Ok(Self::Hook(input.parse()?)),
-            #[cfg(feature = "log")]
             "log_init" => Ok(Self::LogInit(input.parse()?)),
             #[cfg(feature = "log")]
             "event_logging" => Ok(Self::EventLogging(input.parse::<LitBool>()?.value())),
@@ -156,7 +154,6 @@ struct OptionalParameters {
     appsync_operations: bool,
     lambda_handler: bool,
     hook: Option<Ident>,
-    #[cfg(feature = "log")]
     log_init: Option<Ident>,
     #[cfg(feature = "log")]
     event_logging: bool,
@@ -171,7 +168,6 @@ impl Default for OptionalParameters {
             appsync_operations: true,
             lambda_handler: true,
             hook: None,
-            #[cfg(feature = "log")]
             log_init: None,
             #[cfg(feature = "log")]
             event_logging: true,
@@ -205,7 +201,6 @@ impl OptionalParameters {
             OptionalParameter::Hook(ident) => {
                 self.hook.replace(ident);
             }
-            #[cfg(feature = "log")]
             OptionalParameter::LogInit(ident) => {
                 self.log_init.replace(ident);
             }
@@ -478,7 +473,6 @@ impl AppsyncLambdaMain {
         };
         let aws_client_getters = self.aws_clients.iter().map(|ac| ac.aws_client_getter());
 
-        #[cfg(feature = "log")]
         let log_init = if let Some(ref log_init) = self.options.log_init {
             quote_spanned! {log_init.span()=>
                 mod _check_sig {
@@ -500,8 +494,6 @@ impl AppsyncLambdaMain {
             // default_log_init.extend(Self::default_fastrace_init());
             default_log_init
         };
-        #[cfg(not(feature = "log"))]
-        let log_init = TokenStream2::new();
 
         #[allow(unused_mut)]
         let mut bring_in_scope = TokenStream2::new();
