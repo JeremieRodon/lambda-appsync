@@ -20,6 +20,8 @@ The lambda-appsync crate provides procedural macros that convert GraphQL schemas
 - 📦 Performance-optimized batching support
 - 🛡️ Flexible request validation hooks (e.g. for advanced authentication flows)
 - 🔐 Comprehensive support for all AWS AppSync auth types
+- 📊 Configurable logging with support for either `env_logger` and `tracing` (or both!)
+- 🔧 Custom log initialization functions
 
 ## Known limitations
 
@@ -37,7 +39,7 @@ Add this dependency to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-lambda-appsync = "0.8.0"
+lambda-appsync = "0.9.0"
 ```
 
 ## Quick Start
@@ -253,6 +255,87 @@ async fn store_item(item: Item, client: &aws_sdk_dynamodb::Client) -> Result<(),
 
 Error types and messages are extracted from AWS SDK error metadata, allowing use of the `?` operator with AWS SDK calls for properly formatted AppSync response errors.
 
+### Logging Configuration
+
+The framework provides flexible logging configuration with support for both `env_logger` (default) and `tracing`.
+
+#### Default Logging (env_logger)
+
+By default, lambda-appsync uses `env_logger`:
+
+```rust
+appsync_lambda_main!(
+    "graphql/schema.gql",
+    dynamodb() -> aws_sdk_dynamodb::Client,
+);
+```
+
+#### Custom Log Initialization
+
+Override the default logging setup with a custom function:
+
+```rust
+fn custom_log_init() {
+    use lambda_appsync::env_logger;
+    env_logger::Builder::from_env(
+        env_logger::Env::default()
+            .default_filter_or("info,tracing::span=warn")
+            .default_write_style_or("never"),
+    )
+    .format_timestamp_micros()
+    .init();
+}
+
+appsync_lambda_main!(
+    "graphql/schema.gql",
+    log_init = custom_log_init,
+    dynamodb() -> aws_sdk_dynamodb::Client,
+);
+```
+
+#### Tracing Support
+
+Enable structured JSON logging with tracing by adding the `tracing` feature:
+
+```toml
+[dependencies]
+lambda-appsync = { version = "0.9.0", default-features = false, features = ["tracing"] }
+```
+
+```rust
+fn tracing_init() {
+    use lambda_appsync::{tracing, tracing_subscriber};
+    tracing_subscriber::fmt()
+        .json()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::from_default_env()
+                .add_directive(tracing::Level::INFO.into()),
+        )
+        .with_current_span(false)
+        .with_ansi(false)
+        .with_target(false)
+        .init();
+}
+
+appsync_lambda_main!(
+    "graphql/schema.gql",
+    log_init = tracing_init,
+    dynamodb() -> aws_sdk_dynamodb::Client,
+);
+```
+
+#### Event Logging Control
+
+Control whether Lambda event payloads are logged (disabled by default for security):
+
+```rust
+appsync_lambda_main!(
+    "graphql/schema.gql",
+    event_logging = true,  // Enable full event payload logging for debugging
+    dynamodb() -> aws_sdk_dynamodb::Client,
+);
+```
+
 ### Error Merging
 
 Combine multiple errors using the pipe operator:
@@ -260,6 +343,27 @@ Combine multiple errors using the pipe operator:
 ```rust
 let err = AppsyncError::new("ValidationError", "Invalid email")
     | AppsyncError::new("DatabaseError", "User not found");
+```
+
+### Feature Flags
+
+The `lambda-appsync` crate supports several feature flags for different use cases:
+
+- `env_logger` (default): Enables env_logger integration and re-exports
+- `tracing`: Enables tracing/tracing-subscriber integration as an alternative to env_logger  
+- `log`: Controls log statement generation in generated code and availability of re-exported `log` crate
+
+You can mix and match these features based on your needs:
+
+```toml
+# Use tracing instead of env_logger
+lambda-appsync = { version = "0.9.0", default-features = false, features = ["tracing"] }
+
+# Use both (for migration scenarios)
+lambda-appsync = { version = "0.9.0", features = ["tracing"] }
+
+# Use your custom logging framework while still getting logs from the macro-generated code
+lambda-appsync = { version = "0.9.0", default-features = false, features = ["log"] }
 ```
 
 ## Minimum Supported Rust Version (MSRV)

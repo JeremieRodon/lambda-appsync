@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-01-09
+
+### Added
+- **Tracing support**: New `tracing` feature flag enables tracing/tracing-subscriber integration as an alternative to env_logger
+- **Configurable logging initialization**: New `log_init = function_name` macro parameter allows custom log initialization functions instead of relying on defaults
+- **Event logging control**: New `event_logging = bool` macro parameter controls whether Lambda event payloads are logged (defaults to `false` for better security)
+- Structured JSON logging by default when tracing is enabled
+- `#[tracing::instrument]` attributes on generated handler functions with request ID and operation name in trace spans
+- Signature validation for the `hook` option with clear error messages for invalid function signatures
+
+### Changed
+- **Breaking**: Event payload logging is now disabled by default for security reasons (can be re-enabled with `event_logging = true`)
+- When Lambda event payloads logging is enabled, Lambda event payloads are now logged at `debug` level instead of `info`
+- `env_logger` is now an optional feature (still enabled by default for backward compatibility)
+- Independent `log` feature flag controls log statement generation in generated code
+
+### Fixed
+- Generated `main` and `function_handler` now use fully qualified `::core::result::Result` instead of `Result`, preventing compilation failures when users override the Result type
+- Request hook trybuild test was not actually testing anything
+- Release CI could fail tests but still proceed with publishing
+
+[0.9.0]: https://github.com/JeremieRodon/lambda-appsync/compare/v0.8.0...v0.9.0
+
 ## [0.8.0] - 2025-11-16
 
 ### Changed
