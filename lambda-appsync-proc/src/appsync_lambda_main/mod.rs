@@ -70,6 +70,9 @@ enum OptionalParameter {
     ExcludeAppsyncOperations(bool),
     OnlyAppsyncOperations(bool),
     Hook(Ident),
+    LogInit(Ident),
+    #[cfg(feature = "log")]
+    EventLogging(bool),
     TypeOverride(TypeOverride),
     NameOverride(NameOverride),
 }
@@ -94,6 +97,9 @@ impl Parse for OptionalParameter {
                 input.parse::<LitBool>()?.value(),
             )),
             "hook" => Ok(Self::Hook(input.parse()?)),
+            "log_init" => Ok(Self::LogInit(input.parse()?)),
+            #[cfg(feature = "log")]
+            "event_logging" => Ok(Self::EventLogging(input.parse::<LitBool>()?.value())),
             "type_override" => Ok(Self::TypeOverride(input.parse()?)),
             "name_override" => Ok(Self::NameOverride(input.parse()?)),
             // Deprecated options
@@ -148,6 +154,9 @@ struct OptionalParameters {
     appsync_operations: bool,
     lambda_handler: bool,
     hook: Option<Ident>,
+    log_init: Option<Ident>,
+    #[cfg(feature = "log")]
+    event_logging: bool,
     tos: TypeOverrides,
     nos: NameOverrides,
 }
@@ -159,6 +168,9 @@ impl Default for OptionalParameters {
             appsync_operations: true,
             lambda_handler: true,
             hook: None,
+            log_init: None,
+            #[cfg(feature = "log")]
+            event_logging: false,
             tos: TypeOverrides::new(),
             nos: NameOverrides::new(),
         }
@@ -188,6 +200,13 @@ impl OptionalParameters {
             }
             OptionalParameter::Hook(ident) => {
                 self.hook.replace(ident);
+            }
+            OptionalParameter::LogInit(ident) => {
+                self.log_init.replace(ident);
+            }
+            #[cfg(feature = "log")]
+            OptionalParameter::EventLogging(b) => {
+                self.event_logging = b;
             }
             OptionalParameter::TypeOverride(to) => {
                 // Retrieve the entry corresponding to `Type.field`
@@ -305,6 +324,19 @@ impl Parse for AppsyncLambdaMain {
 
 impl AppsyncLambdaMain {
     fn appsync_event_handler(&self, tokens: &mut TokenStream2) {
+        #[allow(unused_mut)]
+        let mut log_lines = proc_macro2::TokenStream::new();
+        #[cfg(feature = "log")]
+        if self.options.event_logging {
+            log_lines.extend(quote! {
+                ::lambda_appsync::log::debug!("event={event:?}");
+            });
+        }
+        #[cfg(feature = "log")]
+        log_lines.extend(quote! {
+            ::lambda_appsync::log::info!("operation={:?}", event.info.operation);
+        });
+
         let call_hook = if let Some(ref hook) = self.options.hook {
             quote_spanned! {hook.span()=>
                 mod _check_sig {
@@ -326,10 +358,15 @@ impl AppsyncLambdaMain {
         } else {
             quote! {}
         };
+
+        #[cfg(feature = "tracing")]
+        tokens.extend(quote! {
+            #[::lambda_appsync::tracing::instrument(skip(event), fields(operation = ?event.info.operation))]
+        });
+
         tokens.extend(quote! {
             async fn appsync_handler(event: ::lambda_appsync::AppsyncEvent<Operation>) -> ::lambda_appsync::AppsyncResponse {
-                ::lambda_appsync::log::info!("event={event:?}");
-                ::lambda_appsync::log::info!("operation={:?}", event.info.operation);
+                #log_lines
 
                 #call_hook
 
@@ -357,14 +394,40 @@ impl AppsyncLambdaMain {
         }
     }
 
-    fn lambda_main(&self, tokens: &mut TokenStream2) {
-        let (config_init, config_getter) = if !self.aws_clients.is_empty() {
-            (AWSClient::aws_config_init(), AWSClient::aws_config_getter())
-        } else {
-            (TokenStream2::new(), TokenStream2::new())
-        };
-        let aws_client_getters = self.aws_clients.iter().map(|ac| ac.aws_client_getter());
+    #[allow(dead_code)]
+    fn default_env_logger_init() -> TokenStream2 {
+        quote! {
+            ::lambda_appsync::env_logger::Builder::from_env(
+                ::lambda_appsync::env_logger::Env::default()
+                    .default_filter_or("info,tracing::span=warn")
+                    .default_write_style_or("never"),
+            )
+            .format_timestamp_micros()
+            .init();
+        }
+    }
 
+    #[allow(dead_code)]
+    fn default_tracing_init() -> TokenStream2 {
+        quote! {
+            ::lambda_appsync::tracing_subscriber::fmt()
+                    .json()
+                    .with_env_filter(
+                        ::lambda_appsync::tracing_subscriber::EnvFilter::from_default_env()
+                            .add_directive(tracing::Level::INFO.into()),
+                    )
+                    // this needs to be set to remove duplicated information in the log.
+                    .with_current_span(false)
+                    // this needs to be set to false, otherwise ANSI color codes will
+                    // show up in a confusing manner in CloudWatch logs.
+                    .with_ansi(false)
+                    // remove the name of the function from every log entry
+                    .with_target(false)
+                    .init();
+        }
+    }
+
+    fn lambda_function_handler(&self, tokens: &mut TokenStream2) {
         let (appsync_handler, ret_type) = if self.options.batch {
             (
                 format_ident!("appsync_batch_handler"),
@@ -377,29 +440,81 @@ impl AppsyncLambdaMain {
             )
         };
 
+        #[cfg(feature = "tracing")]
+        tokens.extend(quote! {
+            #[::lambda_appsync::tracing::instrument(skip(event), fields(req_id = %event.context.request_id))]
+        });
+
+        #[allow(unused_mut)]
+        let mut log_lines = proc_macro2::TokenStream::new();
+        #[cfg(feature = "log")]
+        if self.options.event_logging {
+            log_lines.extend(quote! {
+                ::lambda_appsync::log::debug!("{}", ::lambda_appsync::serde_json::json!(event.payload));
+            });
+        }
+
         tokens.extend(quote! {
             async fn function_handler(
                 event: ::lambda_appsync::lambda_runtime::LambdaEvent<::lambda_appsync::serde_json::Value>,
             ) -> ::core::result::Result<#ret_type, ::lambda_appsync::lambda_runtime::Error> {
-                ::lambda_appsync::log::debug!("{event:?}");
-                ::lambda_appsync::log::info!("{}", ::lambda_appsync::serde_json::json!(event.payload));
+                #log_lines
                 Ok(#appsync_handler(::lambda_appsync::serde_json::from_value(event.payload)?).await)
             }
+        });
+    }
+
+    fn lambda_main(&self, tokens: &mut TokenStream2) {
+        let (config_init, config_getter) = if !self.aws_clients.is_empty() {
+            (AWSClient::aws_config_init(), AWSClient::aws_config_getter())
+        } else {
+            (TokenStream2::new(), TokenStream2::new())
+        };
+        let aws_client_getters = self.aws_clients.iter().map(|ac| ac.aws_client_getter());
+
+        let log_init = if let Some(ref log_init) = self.options.log_init {
+            quote_spanned! {log_init.span()=>
+                mod _check_sig {
+                    #[inline(always)]
+                    pub(super) fn call_log_init<F: Fn() -> ()>(f: F) {f()}
+                }
+                _check_sig::call_log_init(#log_init);
+            }
+        } else {
+            #[allow(unused_mut)]
+            let mut default_log_init = proc_macro2::TokenStream::new();
+            #[cfg(feature = "env_logger")]
+            default_log_init.extend(Self::default_env_logger_init());
+            // The code initializing tracing fails if the env_logger initialization already happened
+            #[cfg(all(feature = "tracing", not(any(feature = "env_logger"))))]
+            default_log_init.extend(Self::default_tracing_init());
+            // Future default inits can be inserted here like that for feature "fastrace" (for example):
+            // #[cfg(all(feature = "fastrace", not(any(feature = "env_logger", feature = "tracing"))))]
+            // default_log_init.extend(Self::default_fastrace_init());
+            default_log_init
+        };
+
+        #[allow(unused_mut)]
+        let mut bring_in_scope = TokenStream2::new();
+        bring_in_scope.extend(quote! {
+            use ::lambda_appsync::tokio;
+        });
+        #[cfg(feature = "tracing")]
+        bring_in_scope.extend(quote! {
+            use ::lambda_appsync::tracing;
+        });
+
+        tokens.extend(quote! {
 
             #config_getter
 
             #(#aws_client_getters)*
 
-            use ::lambda_appsync::tokio;
+            #bring_in_scope
+
             #[tokio::main]
             async fn main() -> ::core::result::Result<(), ::lambda_appsync::lambda_runtime::Error> {
-                ::lambda_appsync::env_logger::Builder::from_env(
-                    ::lambda_appsync::env_logger::Env::default()
-                        .default_filter_or("info,tracing::span=warn")
-                        .default_write_style_or("never"),
-                )
-                .format_timestamp_micros()
-                .init();
+                #log_init
 
                 #config_init
 
@@ -419,6 +534,7 @@ impl ToTokens for AppsyncLambdaMain {
         }
         if self.options.lambda_handler {
             self.appsync_event_handler(tokens);
+            self.lambda_function_handler(tokens);
             self.lambda_main(tokens);
         }
     }
